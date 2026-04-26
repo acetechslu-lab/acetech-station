@@ -1,0 +1,933 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no">
+<title>ACEtech — Attendance Station</title>
+<link href="https://fonts.googleapis.com/css2?family=Barlow+Condensed:wght@300;400;600;700;800&family=Barlow:wght@300;400;500;600&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --bg:        #0a0f1a;
+    --surface:   #111827;
+    --card:      #1a2235;
+    --border:    #2a3a55;
+    --gold:      #C9A227;
+    --gold-dim:  #8a6c18;
+    --green:     #22c55e;
+    --red:       #ef4444;
+    --blue:      #3b82f6;
+    --text:      #f1f5f9;
+    --muted:     #64748b;
+    --white:     #ffffff;
+  }
+
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+
+  html, body {
+    height: 100%;
+    background: var(--bg);
+    color: var(--text);
+    font-family: 'Barlow', sans-serif;
+    overflow: hidden;
+  }
+
+  /* ── background grid ── */
+  body::before {
+    content: '';
+    position: fixed; inset: 0;
+    background-image:
+      linear-gradient(rgba(201,162,39,0.04) 1px, transparent 1px),
+      linear-gradient(90deg, rgba(201,162,39,0.04) 1px, transparent 1px);
+    background-size: 40px 40px;
+    pointer-events: none;
+    z-index: 0;
+  }
+
+  .wrapper {
+    position: relative;
+    z-index: 1;
+    height: 100vh;
+    display: flex;
+    flex-direction: column;
+  }
+
+  /* ── HEADER ── */
+  header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 18px 32px;
+    border-bottom: 1px solid var(--border);
+    background: rgba(17,24,39,0.95);
+    backdrop-filter: blur(8px);
+    flex-shrink: 0;
+  }
+
+  .logo-block {
+    display: flex;
+    align-items: center;
+    gap: 14px;
+  }
+
+  .logo-icon {
+    width: 44px; height: 44px;
+    background: var(--gold);
+    border-radius: 8px;
+    display: flex; align-items: center; justify-content: center;
+    font-family: 'Barlow Condensed', sans-serif;
+    font-weight: 800;
+    font-size: 18px;
+    color: #0a0f1a;
+    letter-spacing: -0.5px;
+  }
+
+  .logo-text {
+    font-family: 'Barlow Condensed', sans-serif;
+    font-weight: 700;
+    font-size: 22px;
+    letter-spacing: 1px;
+    color: var(--white);
+  }
+
+  .logo-text span {
+    color: var(--gold);
+  }
+
+  .header-right {
+    display: flex;
+    align-items: center;
+    gap: 24px;
+  }
+
+  .live-clock {
+    text-align: right;
+  }
+
+  #clock-time {
+    font-family: 'Barlow Condensed', sans-serif;
+    font-size: 28px;
+    font-weight: 600;
+    color: var(--gold);
+    letter-spacing: 2px;
+    line-height: 1;
+  }
+
+  #clock-date {
+    font-size: 11px;
+    color: var(--muted);
+    letter-spacing: 1px;
+    text-transform: uppercase;
+    margin-top: 2px;
+  }
+
+  .status-dot {
+    width: 10px; height: 10px;
+    background: var(--green);
+    border-radius: 50%;
+    box-shadow: 0 0 8px var(--green);
+    animation: pulse-dot 2s infinite;
+  }
+
+  @keyframes pulse-dot {
+    0%, 100% { opacity: 1; }
+    50% { opacity: 0.4; }
+  }
+
+  /* ── MAIN CONTENT ── */
+  main {
+    flex: 1;
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 0;
+    overflow: hidden;
+  }
+
+  /* ── LEFT PANEL — Idle / Search ── */
+  .left-panel {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    padding: 40px;
+    border-right: 1px solid var(--border);
+    gap: 32px;
+  }
+
+  .scan-prompt {
+    text-align: center;
+  }
+
+  .scan-icon {
+    width: 100px; height: 100px;
+    margin: 0 auto 20px;
+    border: 3px solid var(--gold);
+    border-radius: 16px;
+    display: flex; align-items: center; justify-content: center;
+    position: relative;
+    animation: scan-glow 3s ease-in-out infinite;
+  }
+
+  @keyframes scan-glow {
+    0%, 100% { box-shadow: 0 0 10px rgba(201,162,39,0.3); }
+    50% { box-shadow: 0 0 30px rgba(201,162,39,0.7); }
+  }
+
+  .scan-icon svg {
+    width: 52px; height: 52px;
+    fill: var(--gold);
+  }
+
+  .scan-line {
+    position: absolute;
+    width: 80%;
+    height: 2px;
+    background: var(--gold);
+    top: 50%;
+    left: 10%;
+    animation: scan-move 2s ease-in-out infinite;
+    opacity: 0.8;
+  }
+
+  @keyframes scan-move {
+    0%   { top: 20%; opacity: 0; }
+    10%  { opacity: 1; }
+    90%  { opacity: 1; }
+    100% { top: 80%; opacity: 0; }
+  }
+
+  .scan-title {
+    font-family: 'Barlow Condensed', sans-serif;
+    font-size: 28px;
+    font-weight: 700;
+    color: var(--white);
+    letter-spacing: 1px;
+    margin-bottom: 8px;
+  }
+
+  .scan-sub {
+    font-size: 14px;
+    color: var(--muted);
+    line-height: 1.5;
+  }
+
+  /* Manual ID Search */
+  .manual-search {
+    width: 100%;
+    max-width: 340px;
+  }
+
+  .search-label {
+    font-size: 11px;
+    text-transform: uppercase;
+    letter-spacing: 1.5px;
+    color: var(--muted);
+    margin-bottom: 8px;
+    display: block;
+  }
+
+  .search-row {
+    display: flex;
+    gap: 8px;
+  }
+
+  .search-input {
+    flex: 1;
+    background: var(--card);
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    padding: 12px 16px;
+    color: var(--text);
+    font-family: 'Barlow Condensed', sans-serif;
+    font-size: 18px;
+    font-weight: 600;
+    letter-spacing: 2px;
+    outline: none;
+    transition: border-color 0.2s;
+  }
+
+  .search-input:focus {
+    border-color: var(--gold);
+  }
+
+  .search-input::placeholder {
+    color: var(--muted);
+    font-weight: 300;
+    letter-spacing: 1px;
+  }
+
+  .search-btn {
+    background: var(--gold);
+    color: #0a0f1a;
+    border: none;
+    border-radius: 8px;
+    padding: 12px 18px;
+    cursor: pointer;
+    font-weight: 700;
+    font-size: 14px;
+    transition: background 0.2s, transform 0.1s;
+  }
+
+  .search-btn:hover { background: #e0b530; }
+  .search-btn:active { transform: scale(0.97); }
+
+  .divider {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    width: 100%;
+    max-width: 340px;
+  }
+
+  .divider-line { flex: 1; height: 1px; background: var(--border); }
+  .divider-text { font-size: 11px; color: var(--muted); text-transform: uppercase; letter-spacing: 1px; }
+
+  /* ── RIGHT PANEL — Clock In/Out Card ── */
+  .right-panel {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    padding: 40px;
+    gap: 24px;
+  }
+
+  /* Idle state */
+  .idle-message {
+    text-align: center;
+    opacity: 0.35;
+  }
+
+  .idle-message svg {
+    width: 64px; height: 64px;
+    fill: var(--muted);
+    margin-bottom: 16px;
+  }
+
+  .idle-message p {
+    font-size: 15px;
+    color: var(--muted);
+    line-height: 1.6;
+  }
+
+  /* Employee card */
+  .emp-card {
+    display: none;
+    flex-direction: column;
+    align-items: center;
+    width: 100%;
+    max-width: 360px;
+    gap: 20px;
+    animation: card-in 0.4s cubic-bezier(0.34, 1.56, 0.64, 1);
+  }
+
+  @keyframes card-in {
+    from { opacity: 0; transform: translateY(20px) scale(0.95); }
+    to   { opacity: 1; transform: translateY(0) scale(1); }
+  }
+
+  .emp-card.visible { display: flex; }
+
+  .emp-avatar {
+    width: 80px; height: 80px;
+    border-radius: 50%;
+    background: linear-gradient(135deg, var(--gold), var(--gold-dim));
+    display: flex; align-items: center; justify-content: center;
+    font-family: 'Barlow Condensed', sans-serif;
+    font-size: 32px;
+    font-weight: 800;
+    color: #0a0f1a;
+    flex-shrink: 0;
+  }
+
+  .emp-info {
+    text-align: center;
+  }
+
+  .emp-name {
+    font-family: 'Barlow Condensed', sans-serif;
+    font-size: 30px;
+    font-weight: 700;
+    color: var(--white);
+    letter-spacing: 0.5px;
+    line-height: 1.1;
+  }
+
+  .emp-meta {
+    font-size: 13px;
+    color: var(--muted);
+    margin-top: 4px;
+    letter-spacing: 0.5px;
+  }
+
+  .emp-id-badge {
+    display: inline-block;
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 6px;
+    padding: 4px 12px;
+    font-family: 'Barlow Condensed', sans-serif;
+    font-size: 14px;
+    letter-spacing: 2px;
+    color: var(--gold);
+    margin-top: 6px;
+  }
+
+  .status-banner {
+    width: 100%;
+    border-radius: 10px;
+    padding: 10px 16px;
+    text-align: center;
+    font-size: 13px;
+    font-weight: 500;
+    letter-spacing: 0.5px;
+  }
+
+  .status-banner.clocked-in {
+    background: rgba(34,197,94,0.12);
+    border: 1px solid rgba(34,197,94,0.3);
+    color: var(--green);
+  }
+
+  .status-banner.clocked-out {
+    background: rgba(100,116,139,0.12);
+    border: 1px solid rgba(100,116,139,0.3);
+    color: var(--muted);
+  }
+
+  /* Action buttons */
+  .action-buttons {
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+    width: 100%;
+  }
+
+  .btn-action {
+    width: 100%;
+    padding: 18px;
+    border: none;
+    border-radius: 12px;
+    font-family: 'Barlow Condensed', sans-serif;
+    font-size: 20px;
+    font-weight: 700;
+    letter-spacing: 2px;
+    text-transform: uppercase;
+    cursor: pointer;
+    transition: all 0.2s;
+    position: relative;
+    overflow: hidden;
+  }
+
+  .btn-action::after {
+    content: '';
+    position: absolute;
+    inset: 0;
+    background: white;
+    opacity: 0;
+    transition: opacity 0.2s;
+  }
+
+  .btn-action:active::after { opacity: 0.1; }
+
+  .btn-clock-in {
+    background: var(--green);
+    color: white;
+    box-shadow: 0 4px 20px rgba(34,197,94,0.3);
+  }
+
+  .btn-clock-in:hover { background: #16a34a; box-shadow: 0 4px 24px rgba(34,197,94,0.5); }
+  .btn-clock-in:disabled { background: #1a3a28; color: #2d5a3d; box-shadow: none; cursor: not-allowed; }
+
+  .btn-clock-out {
+    background: var(--red);
+    color: white;
+    box-shadow: 0 4px 20px rgba(239,68,68,0.3);
+  }
+
+  .btn-clock-out:hover { background: #dc2626; box-shadow: 0 4px 24px rgba(239,68,68,0.5); }
+  .btn-clock-out:disabled { background: #3a1a1a; color: #5a2d2d; box-shadow: none; cursor: not-allowed; }
+
+  .btn-cancel {
+    background: transparent;
+    border: 1px solid var(--border);
+    color: var(--muted);
+    padding: 12px;
+    border-radius: 8px;
+    font-size: 13px;
+    width: 100%;
+    cursor: pointer;
+    transition: all 0.2s;
+    font-family: 'Barlow', sans-serif;
+    letter-spacing: 0.5px;
+  }
+
+  .btn-cancel:hover { border-color: var(--muted); color: var(--text); }
+
+  /* ── CONFIRMATION OVERLAY ── */
+  .confirm-overlay {
+    display: none;
+    position: fixed; inset: 0;
+    background: rgba(10,15,26,0.92);
+    z-index: 100;
+    align-items: center;
+    justify-content: center;
+    backdrop-filter: blur(4px);
+  }
+
+  .confirm-overlay.show { display: flex; }
+
+  .confirm-box {
+    background: var(--card);
+    border: 1px solid var(--border);
+    border-radius: 20px;
+    padding: 48px 40px;
+    text-align: center;
+    max-width: 380px;
+    width: 90%;
+    animation: pop-in 0.4s cubic-bezier(0.34, 1.56, 0.64, 1);
+  }
+
+  @keyframes pop-in {
+    from { opacity: 0; transform: scale(0.8); }
+    to   { opacity: 1; transform: scale(1); }
+  }
+
+  .confirm-icon {
+    width: 72px; height: 72px;
+    border-radius: 50%;
+    display: flex; align-items: center; justify-content: center;
+    margin: 0 auto 20px;
+    font-size: 36px;
+  }
+
+  .confirm-icon.success { background: rgba(34,197,94,0.15); }
+  .confirm-icon.error   { background: rgba(239,68,68,0.15); }
+
+  .confirm-title {
+    font-family: 'Barlow Condensed', sans-serif;
+    font-size: 28px;
+    font-weight: 700;
+    color: var(--white);
+    margin-bottom: 8px;
+  }
+
+  .confirm-detail {
+    font-size: 14px;
+    color: var(--muted);
+    line-height: 1.6;
+    margin-bottom: 24px;
+  }
+
+  .confirm-time {
+    font-family: 'Barlow Condensed', sans-serif;
+    font-size: 22px;
+    font-weight: 600;
+    color: var(--gold);
+    letter-spacing: 2px;
+    margin-bottom: 24px;
+  }
+
+  .progress-bar {
+    width: 100%;
+    height: 4px;
+    background: var(--border);
+    border-radius: 2px;
+    overflow: hidden;
+  }
+
+  .progress-fill {
+    height: 100%;
+    background: var(--gold);
+    border-radius: 2px;
+    width: 0%;
+    transition: width 3s linear;
+  }
+
+  .progress-fill.go { width: 100%; }
+
+  /* ── FOOTER ── */
+  footer {
+    padding: 10px 32px;
+    border-top: 1px solid var(--border);
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    flex-shrink: 0;
+    background: rgba(17,24,39,0.8);
+  }
+
+  .footer-note {
+    font-size: 11px;
+    color: var(--muted);
+    letter-spacing: 0.5px;
+  }
+
+  .footer-brand {
+    font-family: 'Barlow Condensed', sans-serif;
+    font-size: 12px;
+    color: var(--gold-dim);
+    letter-spacing: 2px;
+    text-transform: uppercase;
+  }
+
+  /* Error state */
+  .error-msg {
+    display: none;
+    background: rgba(239,68,68,0.1);
+    border: 1px solid rgba(239,68,68,0.3);
+    border-radius: 8px;
+    padding: 10px 14px;
+    font-size: 13px;
+    color: var(--red);
+    text-align: center;
+    width: 100%;
+    max-width: 340px;
+  }
+
+  .error-msg.show { display: block; }
+
+  /* Loading spinner */
+  .spinner {
+    display: none;
+    width: 20px; height: 20px;
+    border: 2px solid rgba(255,255,255,0.2);
+    border-top-color: white;
+    border-radius: 50%;
+    animation: spin 0.6s linear infinite;
+    margin: 0 auto;
+  }
+
+  .spinner.show { display: block; }
+  @keyframes spin { to { transform: rotate(360deg); } }
+
+</style>
+</head>
+<body>
+
+<div class="wrapper">
+
+  <!-- HEADER -->
+  <header>
+    <div class="logo-block">
+      <div class="logo-icon">AC</div>
+      <div>
+        <div class="logo-text">ACE<span>tech</span></div>
+        <div style="font-size:10px;color:var(--muted);letter-spacing:2px;text-transform:uppercase;margin-top:1px;">Attendance Station</div>
+      </div>
+    </div>
+    <div class="header-right">
+      <div class="live-clock">
+        <div id="clock-time">--:--:--</div>
+        <div id="clock-date">Loading...</div>
+      </div>
+      <div class="status-dot" title="Station Online"></div>
+    </div>
+  </header>
+
+  <!-- MAIN -->
+  <main>
+
+    <!-- LEFT: Scan / Manual Entry -->
+    <div class="left-panel">
+
+      <div class="scan-prompt">
+        <div class="scan-icon">
+          <!-- QR code icon -->
+          <svg viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
+            <path d="M3 3h7v7H3V3zm1 1v5h5V4H4zm1 1h3v3H5V5zM14 3h7v7h-7V3zm1 1v5h5V4h-5zm1 1h3v3h-3V5zM3 14h7v7H3v-7zm1 1v5h5v-5H4zm1 1h3v3H5v-3zM14 14h2v2h-2v-2zm3 0h2v2h-2v-2zm-3 3h2v2h-2v-2zm3 0h2v2h-2v-2zm-6-3h2v2h-2v-2zm0 3h2v2h-2v-2z"/>
+          </svg>
+          <div class="scan-line"></div>
+        </div>
+        <div class="scan-title">Scan Your QR Card</div>
+        <div class="scan-sub">Hold your employee QR card up to<br>the camera to clock in or out</div>
+      </div>
+
+      <div class="divider">
+        <div class="divider-line"></div>
+        <div class="divider-text">or enter ID manually</div>
+        <div class="divider-line"></div>
+      </div>
+
+      <div class="manual-search">
+        <label class="search-label" for="emp-id-input">Employee ID</label>
+        <div class="search-row">
+          <input
+            type="text"
+            id="emp-id-input"
+            class="search-input"
+            placeholder="ACE-001"
+            maxlength="20"
+            autocomplete="off"
+            autocorrect="off"
+            autocapitalize="characters"
+          >
+          <button class="search-btn" onclick="lookupEmployee()">GO</button>
+        </div>
+      </div>
+
+      <div class="error-msg" id="error-msg">Employee not found. Please check your ID.</div>
+
+    </div>
+
+    <!-- RIGHT: Employee Card -->
+    <div class="right-panel">
+
+      <!-- Idle state -->
+      <div class="idle-message" id="idle-state">
+        <svg viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
+          <path d="M12 12c2.7 0 4.8-2.1 4.8-4.8S14.7 2.4 12 2.4 7.2 4.5 7.2 7.2 9.3 12 12 12zm0 2.4c-3.2 0-9.6 1.6-9.6 4.8v2.4h19.2v-2.4c0-3.2-6.4-4.8-9.6-4.8z"/>
+        </svg>
+        <p>Scan a QR code or enter<br>an Employee ID to begin</p>
+      </div>
+
+      <!-- Employee card (shown after lookup) -->
+      <div class="emp-card" id="emp-card">
+        <div class="emp-avatar" id="emp-avatar">--</div>
+        <div class="emp-info">
+          <div class="emp-name" id="emp-name">—</div>
+          <div class="emp-meta" id="emp-position">—</div>
+          <div class="emp-id-badge" id="emp-id-display">—</div>
+        </div>
+        <div class="status-banner" id="status-banner">—</div>
+        <div class="action-buttons">
+          <button class="btn-action btn-clock-in" id="btn-clock-in" onclick="submitClock('Clock In')">
+            ✓ &nbsp; Clock In
+          </button>
+          <button class="btn-action btn-clock-out" id="btn-clock-out" onclick="submitClock('Clock Out')">
+            ✕ &nbsp; Clock Out
+          </button>
+        </div>
+        <button class="btn-cancel" onclick="resetStation()">← Back / Different Employee</button>
+      </div>
+
+    </div>
+  </main>
+
+  <!-- FOOTER -->
+  <footer>
+    <div class="footer-note">For assistance, contact your site supervisor</div>
+    <div class="footer-brand">ACEtech Engineering & Construction</div>
+  </footer>
+
+</div>
+
+<!-- CONFIRMATION OVERLAY -->
+<div class="confirm-overlay" id="confirm-overlay">
+  <div class="confirm-box">
+    <div class="confirm-icon" id="confirm-icon">
+      <span id="confirm-emoji">✓</span>
+    </div>
+    <div class="confirm-title" id="confirm-title">Clocked In!</div>
+    <div class="confirm-detail" id="confirm-detail">Have a great shift.</div>
+    <div class="confirm-time" id="confirm-time">—</div>
+    <div class="progress-bar">
+      <div class="progress-fill" id="progress-fill"></div>
+    </div>
+    <div style="margin-top:12px;font-size:12px;color:var(--muted);">Returning to station in 3 seconds…</div>
+  </div>
+</div>
+
+
+<script>
+// ════════════════════════════════════════════════════════
+// CONFIGURATION — paste your Google Apps Script Web App URL here
+// ════════════════════════════════════════════════════════
+const WEB_APP_URL = "YOUR_GOOGLE_APPS_SCRIPT_WEB_APP_URL_HERE";
+
+// ════════════════════════════════════════════════════════
+// LIVE CLOCK
+// ════════════════════════════════════════════════════════
+function updateClock() {
+  const now = new Date();
+  const days = ['Sunday','Monday','Tuesday','Wednesday','Thursday','Friday','Saturday'];
+  const months = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
+
+  const h = String(now.getHours()).padStart(2,'0');
+  const m = String(now.getMinutes()).padStart(2,'0');
+  const s = String(now.getSeconds()).padStart(2,'0');
+
+  document.getElementById('clock-time').textContent = `${h}:${m}:${s}`;
+  document.getElementById('clock-date').textContent =
+    `${days[now.getDay()]}, ${months[now.getMonth()]} ${now.getDate()}, ${now.getFullYear()}`;
+}
+setInterval(updateClock, 1000);
+updateClock();
+
+// ════════════════════════════════════════════════════════
+// EMPLOYEE LOOKUP
+// ════════════════════════════════════════════════════════
+let currentEmployee = null;
+
+async function lookupEmployee() {
+  const rawId = document.getElementById('emp-id-input').value.trim().toUpperCase();
+  if (!rawId) return;
+
+  hideError();
+
+  if (!WEB_APP_URL || WEB_APP_URL === "YOUR_GOOGLE_APPS_SCRIPT_WEB_APP_URL_HERE") {
+    // Demo mode — show a dummy employee for testing
+    showEmployeeCard({
+      id: rawId,
+      name: "Demo Employee",
+      position: "Site Worker",
+      lastAction: null
+    });
+    return;
+  }
+
+  try {
+    const url = `${WEB_APP_URL}?action=lookup&id=${encodeURIComponent(rawId)}`;
+    const res  = await fetch(url);
+    const data = await res.json();
+
+    if (data.found) {
+      showEmployeeCard(data);
+    } else {
+      showError();
+    }
+  } catch (err) {
+    console.error(err);
+    showError();
+  }
+}
+
+function showEmployeeCard(emp) {
+  currentEmployee = emp;
+
+  // Avatar initials
+  const names  = (emp.name || '').split(' ');
+  const initials = (names[0]?.[0] || '') + (names[1]?.[0] || '');
+  document.getElementById('emp-avatar').textContent = initials.toUpperCase() || '?';
+
+  document.getElementById('emp-name').textContent      = emp.name     || '—';
+  document.getElementById('emp-position').textContent  = emp.position || '—';
+  document.getElementById('emp-id-display').textContent = emp.id      || '—';
+
+  // Status
+  const banner = document.getElementById('status-banner');
+  const btnIn  = document.getElementById('btn-clock-in');
+  const btnOut = document.getElementById('btn-clock-out');
+
+  if (emp.lastAction === 'Clock In') {
+    banner.textContent  = '● Currently Clocked In';
+    banner.className    = 'status-banner clocked-in';
+    btnIn.disabled      = true;
+    btnOut.disabled     = false;
+  } else {
+    banner.textContent  = '○ Not Clocked In';
+    banner.className    = 'status-banner clocked-out';
+    btnIn.disabled      = false;
+    btnOut.disabled     = true;
+  }
+
+  document.getElementById('idle-state').style.display = 'none';
+  const card = document.getElementById('emp-card');
+  card.classList.add('visible');
+}
+
+// ════════════════════════════════════════════════════════
+// CLOCK IN / OUT SUBMISSION
+// ════════════════════════════════════════════════════════
+async function submitClock(action) {
+  if (!currentEmployee) return;
+
+  const now  = new Date();
+  const timeStr = now.toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit', second: '2-digit' });
+
+  if (!WEB_APP_URL || WEB_APP_URL === "YOUR_GOOGLE_APPS_SCRIPT_WEB_APP_URL_HERE") {
+    // Demo mode
+    showConfirmation(action, currentEmployee.name, timeStr, true);
+    return;
+  }
+
+  try {
+    const res = await fetch(WEB_APP_URL, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ empId: currentEmployee.id, action })
+    });
+    const data = await res.json();
+    showConfirmation(action, currentEmployee.name, timeStr, data.success);
+  } catch (err) {
+    console.error(err);
+    showConfirmation(action, currentEmployee.name, timeStr, false);
+  }
+}
+
+// ════════════════════════════════════════════════════════
+// CONFIRMATION OVERLAY
+// ════════════════════════════════════════════════════════
+function showConfirmation(action, name, time, success) {
+  const overlay  = document.getElementById('confirm-overlay');
+  const icon     = document.getElementById('confirm-icon');
+  const emoji    = document.getElementById('confirm-emoji');
+  const title    = document.getElementById('confirm-title');
+  const detail   = document.getElementById('confirm-detail');
+  const timeEl   = document.getElementById('confirm-time');
+  const progress = document.getElementById('progress-fill');
+
+  if (success) {
+    icon.className   = 'confirm-icon success';
+    emoji.textContent = action === 'Clock In' ? '✓' : '✕';
+    title.textContent = action === 'Clock In' ? 'Clocked In!' : 'Clocked Out!';
+    detail.textContent = action === 'Clock In'
+      ? `Welcome, ${name}. Have a great shift!`
+      : `Goodbye, ${name}. See you next time!`;
+    title.style.color = action === 'Clock In' ? 'var(--green)' : 'var(--red)';
+  } else {
+    icon.className   = 'confirm-icon error';
+    emoji.textContent = '!';
+    title.textContent = 'Something went wrong';
+    detail.textContent = 'Please try again or see your supervisor.';
+    title.style.color = 'var(--red)';
+  }
+
+  timeEl.textContent = time;
+  progress.classList.remove('go');
+  overlay.classList.add('show');
+
+  // Trigger progress bar
+  requestAnimationFrame(() => {
+    requestAnimationFrame(() => { progress.classList.add('go'); });
+  });
+
+  // Auto-dismiss after 3s
+  setTimeout(() => {
+    overlay.classList.remove('show');
+    progress.classList.remove('go');
+    resetStation();
+  }, 3200);
+}
+
+// ════════════════════════════════════════════════════════
+// HELPERS
+// ════════════════════════════════════════════════════════
+function resetStation() {
+  currentEmployee = null;
+  document.getElementById('emp-id-input').value = '';
+  document.getElementById('emp-card').classList.remove('visible');
+  document.getElementById('idle-state').style.display = '';
+  hideError();
+}
+
+function showError() {
+  document.getElementById('error-msg').classList.add('show');
+}
+
+function hideError() {
+  document.getElementById('error-msg').classList.remove('show');
+}
+
+// Enter key triggers lookup
+document.getElementById('emp-id-input').addEventListener('keydown', e => {
+  if (e.key === 'Enter') lookupEmployee();
+});
+
+// Auto-focus input on load
+window.addEventListener('load', () => {
+  document.getElementById('emp-id-input').focus();
+});
+</script>
+
+</body>
+</html>
