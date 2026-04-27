@@ -187,6 +187,113 @@
   footer{padding:8px 28px;border-top:1px solid var(--border);display:flex;align-items:center;justify-content:space-between;flex-shrink:0;background:rgba(17,24,39,0.8);}
   .footer-note{font-size:11px;color:var(--muted);}
   .footer-brand{font-family:'Barlow Condensed',sans-serif;font-size:12px;color:var(--gold-dim);letter-spacing:2px;text-transform:uppercase;}
+
+  /* ══════════════════════════════════════════════
+     RESPONSIVE — Portrait tablet & mobile
+  ══════════════════════════════════════════════ */
+
+  /* Portrait tablet (≤ 900px wide) — stack panels vertically */
+  @media (max-width: 900px) {
+    html, body { overflow-y: auto; }
+
+    .wrapper { height: auto; min-height: 100vh; }
+
+    header { padding: 12px 18px; }
+    #clock-time { font-size: 20px; }
+    #clock-date { font-size: 9px; }
+    .logo-text { font-size: 18px; }
+    .logo-icon { width: 36px; height: 36px; font-size: 14px; }
+    .lock-btn, .admin-btn { padding: 5px 10px; font-size: 11px; }
+
+    /* Stack left and right panel vertically */
+    main {
+      grid-template-columns: 1fr;
+      grid-template-rows: auto auto;
+      overflow: visible;
+    }
+
+    .left-panel {
+      border-right: none;
+      border-bottom: 1px solid var(--border);
+      padding: 16px 18px;
+      overflow-y: visible;
+    }
+
+    .right-panel {
+      padding: 20px 18px;
+      min-height: 320px;
+    }
+
+    /* Scanner: limit height on portrait so it doesn't take whole screen */
+    .scanner-wrap { aspect-ratio: 4/3; max-height: 280px; }
+
+    /* Employee card wider on mobile */
+    .emp-card { max-width: 100%; }
+
+    /* Bigger touch targets for buttons */
+    .btn-action { padding: 18px; font-size: 20px; }
+    .btn-cancel { padding: 12px; }
+    .go-btn { padding: 13px 18px; font-size: 15px; }
+
+    footer {
+      flex-direction: column;
+      gap: 4px;
+      text-align: center;
+      padding: 10px 18px;
+    }
+
+    /* Screen boxes more compact */
+    .screen-box { padding: 32px 24px; }
+    .screen-logo { font-size: 26px; }
+  }
+
+  /* Phone (≤ 480px) — further tighten up */
+  @media (max-width: 480px) {
+    header { padding: 10px 14px; gap: 8px; }
+    .header-right { gap: 10px; }
+    #clock-time { font-size: 18px; letter-spacing: 1px; }
+    .logo-text { font-size: 16px; }
+    .logo-icon { width: 32px; height: 32px; font-size: 13px; }
+
+    /* Hide footer brand on very small screens */
+    .footer-brand { display: none; }
+
+    .left-panel { padding: 12px 14px; gap: 10px; }
+    .right-panel { padding: 16px 14px; }
+
+    .tab-btn { font-size: 10px; padding: 8px 2px; letter-spacing: 0; }
+
+    /* Make scanner square and full width */
+    .scanner-wrap { aspect-ratio: 1; max-height: 240px; }
+
+    /* Bigger text inputs for fat fingers */
+    .text-input { font-size: 18px; padding: 13px 14px; }
+    .auth-input { font-size: 16px; padding: 12px 14px; }
+
+    /* PIN numpad bigger */
+    .numpad { max-width: 280px; gap: 12px; }
+    .num-btn { padding: 18px; font-size: 24px; }
+
+    /* Name search dropdown — full screen height */
+    .name-results { max-height: 220px; }
+
+    /* Action buttons — maximum tap area */
+    .btn-action { padding: 20px; font-size: 22px; border-radius: 14px; }
+
+    /* Employee card */
+    .emp-name { font-size: 22px; }
+    .emp-avatar { width: 60px; height: 60px; font-size: 24px; }
+
+    /* Confirmation box */
+    .confirm-box { padding: 32px 20px; }
+    .confirm-title { font-size: 22px; }
+
+    /* Screen box */
+    .screen-box { padding: 28px 18px; width: 95%; }
+    .screen-icon { font-size: 40px; margin-bottom: 12px; }
+    .screen-title { font-size: 20px; }
+    .screen-desc { font-size: 12px; }
+  }
 </style>
 </head>
 <body>
@@ -443,17 +550,33 @@
 const DEFAULT_PIN        = "1234";   // ← change this to your PIN
 const DEFAULT_ADMIN_PASS = "acetech2025admin"; // ← change this to your admin password
 const AUTO_LOCK_MINUTES  = 60;
-const WEB_APP_URL        = "YOUR_GOOGLE_APPS_SCRIPT_WEB_APP_URL_HERE";
+const WEB_APP_URL        = "https://script.google.com/macros/library/d/1gCyBIzHSPc6-Hu6urkUY6XM9TUBGa5YKp5ozUuPDk180CPna5U12P76X/11";
 
 // ═══════════════════════════════════════════════════
 // EMPLOYEE LIST — replace with your real employees
 // ═══════════════════════════════════════════════════
-const EMPLOYEES = [
-  { id:"ACE-001", name:"Employee One",   position:"Site Worker" },
-  { id:"ACE-002", name:"Employee Two",   position:"Site Worker" },
-  { id:"ACE-003", name:"Employee Three", position:"Supervisor"  },
-  // ← paste all 34 employees here
-];
+// Employee list — loaded live from Google Sheet on startup
+let EMPLOYEES = [];
+
+async function loadEmployeesFromSheet() {
+  if (WEB_APP_URL === "YOUR_GOOGLE_APPS_SCRIPT_WEB_APP_URL_HERE") {
+    // Demo fallback if no URL set
+    EMPLOYEES = [{ id:"DEMO-001", name:"Demo Employee", position:"Site Worker" }];
+    return;
+  }
+  try {
+    const res  = await fetch(`${WEB_APP_URL}?action=getEmployees`);
+    const data = await res.json();
+    if (data.success && data.employees.length > 0) {
+      EMPLOYEES = data.employees;
+      console.log(`✅ Loaded ${EMPLOYEES.length} employees from sheet`);
+    } else {
+      console.warn("No employees returned from sheet");
+    }
+  } catch (err) {
+    console.error("Failed to load employees from sheet:", err);
+  }
+}
 
 // ═══════════════════════════════════════════════════
 // STORAGE HELPERS (localStorage for persistence)
@@ -520,6 +643,8 @@ function showApp() {
 // ═══════════════════════════════════════════════════
 window.addEventListener('load', () => {
   document.getElementById('blocked-device-code').textContent = DEVICE_FP;
+  // Load employees from sheet in background
+  loadEmployeesFromSheet();
   if (isDeviceApproved()) {
     showScreen('screen-pin');
   } else {
