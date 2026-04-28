@@ -454,6 +454,7 @@
         <button class="tab-btn active" onclick="switchTab('qr')">📷 QR Scan</button>
         <button class="tab-btn" onclick="switchTab('manual')">🔢 Manual ID</button>
         <button class="tab-btn" onclick="switchTab('name')">🔍 Name Search</button>
+        <button class="tab-btn" onclick="switchTab('entry')">✏️ Manual Entry</button>
       </div>
 
       <div class="tab-panel active" id="tab-qr">
@@ -494,6 +495,88 @@
               readonly style="opacity:0.7;cursor:default;font-size:14px;letter-spacing:1px;">
             <button class="go-btn" onclick="lookupFromName()">GO</button>
           </div>
+        </div>
+      </div>
+
+      <!-- MANUAL ENTRY TAB -->
+      <div class="tab-panel" id="tab-entry">
+
+        <!-- Locked state -->
+        <div id="entry-locked">
+          <div style="text-align:center;padding:20px 0;">
+            <div style="font-size:36px;margin-bottom:12px;">🔐</div>
+            <div style="font-family:'Barlow Condensed',sans-serif;font-size:18px;font-weight:700;color:var(--white);margin-bottom:6px;">Supervisor Access Required</div>
+            <div style="font-size:12px;color:var(--muted);margin-bottom:18px;">Enter admin password to access manual time entry</div>
+            <div style="display:flex;gap:8px;max-width:320px;margin:0 auto;">
+              <input type="password" class="text-input" id="entry-pass-input" placeholder="Admin password"
+                style="letter-spacing:2px;font-size:14px;" autocomplete="off"
+                onkeydown="if(event.key==='Enter') unlockManualEntry()">
+              <button class="go-btn" onclick="unlockManualEntry()">GO</button>
+            </div>
+            <div class="auth-error" id="entry-pass-error" style="margin-top:10px;text-align:center;">Incorrect password.</div>
+          </div>
+        </div>
+
+        <!-- Unlocked form -->
+        <div id="entry-form" style="display:none;flex-direction:column;gap:12px;">
+
+          <!-- Lock again button -->
+          <div style="display:flex;justify-content:space-between;align-items:center;">
+            <div style="font-size:11px;text-transform:uppercase;letter-spacing:1.5px;color:var(--gold);font-weight:600;">✏️ Manual Time Entry</div>
+            <button onclick="lockManualEntry()" style="background:transparent;border:1px solid var(--border);color:var(--muted);border-radius:6px;padding:4px 10px;font-size:11px;cursor:pointer;">🔒 Lock</button>
+          </div>
+
+          <!-- Employee selector -->
+          <div>
+            <label class="field-label">Employee</label>
+            <div class="search-wrap">
+              <input type="text" class="text-input" id="entry-name-search" placeholder="Type name to search..."
+                autocomplete="off" oninput="searchEntryEmployee(this.value)" style="font-size:14px;letter-spacing:0.5px;">
+              <div class="name-results" id="entry-name-results"></div>
+            </div>
+            <input type="hidden" id="entry-emp-id">
+            <div id="entry-emp-badge" style="display:none;margin-top:6px;text-align:center;">
+              <span style="background:var(--surface);border:1px solid var(--gold);border-radius:6px;padding:3px 14px;font-family:'Barlow Condensed',sans-serif;font-size:13px;letter-spacing:2px;color:var(--gold);" id="entry-emp-badge-text">—</span>
+            </div>
+          </div>
+
+          <!-- Date picker -->
+          <div>
+            <label class="field-label">Date</label>
+            <input type="date" class="text-input" id="entry-date"
+              style="font-size:15px;letter-spacing:0.5px;cursor:pointer;">
+          </div>
+
+          <!-- Time pickers -->
+          <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;">
+            <div>
+              <label class="field-label">Clock In Time</label>
+              <input type="time" class="text-input" id="entry-clock-in"
+                style="font-size:15px;letter-spacing:0.5px;cursor:pointer;">
+            </div>
+            <div>
+              <label class="field-label">Clock Out Time</label>
+              <input type="time" class="text-input" id="entry-clock-out"
+                style="font-size:15px;letter-spacing:0.5px;cursor:pointer;">
+            </div>
+          </div>
+
+          <!-- Note -->
+          <div>
+            <label class="field-label">Note (optional)</label>
+            <input type="text" class="text-input" id="entry-note" placeholder="e.g. Forgot to scan"
+              style="font-size:14px;letter-spacing:0.5px;">
+          </div>
+
+          <!-- Submit -->
+          <button class="btn-action btn-clock-in" onclick="submitManualEntry()" id="entry-submit-btn"
+            style="margin-top:4px;font-size:16px;padding:14px;">
+            ✓ &nbsp; Submit Entry
+          </button>
+
+          <!-- Result message -->
+          <div id="entry-result" style="display:none;border-radius:8px;padding:10px 14px;text-align:center;font-size:13px;font-weight:500;"></div>
+
         </div>
       </div>
 
@@ -550,7 +633,7 @@
 const DEFAULT_PIN        = "1234";   // ← change this to your PIN
 const DEFAULT_ADMIN_PASS = "acetech2025admin"; // ← change this to your admin password
 const AUTO_LOCK_MINUTES  = 60;
-const WEB_APP_URL        = "https://script.google.com/macros/library/d/1gCyBIzHSPc6-Hu6urkUY6XM9TUBGa5YKp5ozUuPDk180CPna5U12P76X/11";
+const WEB_APP_URL        = "https://script.google.com/macros/s/AKfycbyg70dUxHNXXo4ztyRLFY4UK_1yCh5wkMfwVCc19EuWMSdjnCNLuz_ai9Q4WCjqDvIVNA/exec";
 
 // ═══════════════════════════════════════════════════
 // EMPLOYEE LIST — replace with your real employees
@@ -890,7 +973,7 @@ updateClock();
 // TABS
 // ═══════════════════════════════════════════════════
 let activeTab = 'qr';
-const TAB_IDS = ['qr','manual','name'];
+const TAB_IDS = ['qr','manual','name','entry'];
 function switchTab(tab) {
   if (activeTab === 'qr' && tab !== 'qr') stopScanner();
   activeTab = tab;
@@ -898,6 +981,143 @@ function switchTab(tab) {
   document.querySelectorAll('.tab-panel').forEach((p,i) => p.classList.toggle('active', TAB_IDS[i] === tab));
   hideError();
 }
+
+// ═══════════════════════════════════════════════════
+// MANUAL ENTRY — PASSWORD & FORM
+// ═══════════════════════════════════════════════════
+let manualEntryUnlocked = false;
+
+function unlockManualEntry() {
+  const pass  = document.getElementById('entry-pass-input').value;
+  const errEl = document.getElementById('entry-pass-error');
+  if (pass !== getAdminPass()) {
+    errEl.classList.add('show');
+    document.getElementById('entry-pass-input').value = '';
+    return;
+  }
+  errEl.classList.remove('show');
+  manualEntryUnlocked = true;
+  document.getElementById('entry-locked').style.display = 'none';
+  const form = document.getElementById('entry-form');
+  form.style.display = 'flex';
+  form.style.flexDirection = 'column';
+  // Default date to today
+  const today = new Date();
+  const yyyy  = today.getFullYear();
+  const mm    = String(today.getMonth() + 1).padStart(2,'0');
+  const dd    = String(today.getDate()).padStart(2,'0');
+  document.getElementById('entry-date').value = `${yyyy}-${mm}-${dd}`;
+  document.getElementById('entry-pass-input').value = '';
+}
+
+function lockManualEntry() {
+  manualEntryUnlocked = false;
+  document.getElementById('entry-locked').style.display = 'block';
+  document.getElementById('entry-form').style.display   = 'none';
+  document.getElementById('entry-name-search').value    = '';
+  document.getElementById('entry-emp-id').value         = '';
+  document.getElementById('entry-clock-in').value       = '';
+  document.getElementById('entry-clock-out').value      = '';
+  document.getElementById('entry-note').value           = '';
+  document.getElementById('entry-emp-badge').style.display = 'none';
+  document.getElementById('entry-result').style.display = 'none';
+}
+
+function searchEntryEmployee(query) {
+  const resultsEl = document.getElementById('entry-name-results');
+  document.getElementById('entry-emp-id').value = '';
+  document.getElementById('entry-emp-badge').style.display = 'none';
+  if (!query || query.length < 2) { resultsEl.classList.remove('open'); return; }
+  const matches = EMPLOYEES.filter(e => e.name.toLowerCase().includes(query.toLowerCase())).slice(0,8);
+  resultsEl.innerHTML = matches.length === 0
+    ? '<div class="no-results">No employees found</div>'
+    : matches.map(e => `
+        <div class="name-result-item" onclick="selectEntryEmployee('${e.id}','${e.name.replace(/'/g,"\\'")}')">
+          <span class="result-id">${e.id}</span>
+          <div class="result-name">${e.name}</div>
+          <div class="result-meta">${e.position}</div>
+        </div>`).join('');
+  resultsEl.classList.add('open');
+}
+
+function selectEntryEmployee(id, name) {
+  document.getElementById('entry-name-search').value = name;
+  document.getElementById('entry-emp-id').value      = id;
+  document.getElementById('entry-name-results').classList.remove('open');
+  const badge = document.getElementById('entry-emp-badge');
+  document.getElementById('entry-emp-badge-text').textContent = id;
+  badge.style.display = 'block';
+}
+
+async function submitManualEntry() {
+  const empId   = document.getElementById('entry-emp-id').value.trim();
+  const date    = document.getElementById('entry-date').value;
+  const clockIn = document.getElementById('entry-clock-in').value;
+  const clockOut= document.getElementById('entry-clock-out').value;
+  const note    = document.getElementById('entry-note').value.trim();
+  const resultEl= document.getElementById('entry-result');
+
+  // Validate
+  if (!empId)    { showEntryResult('Please select an employee.', false); return; }
+  if (!date)     { showEntryResult('Please select a date.', false); return; }
+  if (!clockIn && !clockOut) { showEntryResult('Enter at least a Clock In or Clock Out time.', false); return; }
+  if (clockIn && clockOut && clockIn >= clockOut) {
+    showEntryResult('Clock Out must be after Clock In.', false); return;
+  }
+
+  const btn = document.getElementById('entry-submit-btn');
+  btn.disabled = true;
+  btn.textContent = '⏳ Submitting…';
+
+  try {
+    const res  = await fetch(WEB_APP_URL, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        action:    'manualEntry',
+        empId,
+        date,
+        clockIn,
+        clockOut,
+        note,
+        flag:      'Manual Entry'
+      })
+    });
+    const data = await res.json();
+    if (data.success) {
+      showEntryResult(`✓ Entry saved for ${data.empName} on ${date}`, true);
+      // Clear times and note for next entry
+      document.getElementById('entry-clock-in').value  = '';
+      document.getElementById('entry-clock-out').value = '';
+      document.getElementById('entry-note').value      = '';
+    } else {
+      showEntryResult('Error: ' + (data.error || 'Unknown error'), false);
+    }
+  } catch (err) {
+    showEntryResult('Network error. Check connection.', false);
+  }
+
+  btn.disabled = false;
+  btn.textContent = '✓   Submit Entry';
+}
+
+function showEntryResult(msg, success) {
+  const el = document.getElementById('entry-result');
+  el.textContent  = msg;
+  el.style.display = 'block';
+  el.style.background = success ? 'rgba(34,197,94,0.12)' : 'rgba(239,68,68,0.1)';
+  el.style.border     = success ? '1px solid rgba(34,197,94,0.3)' : '1px solid rgba(239,68,68,0.3)';
+  el.style.color      = success ? 'var(--green)' : 'var(--red)';
+  setTimeout(() => { el.style.display = 'none'; }, 4000);
+}
+
+// Close entry dropdown on outside click
+document.addEventListener('click', e => {
+  if (!e.target.closest('#tab-entry .search-wrap')) {
+    const r = document.getElementById('entry-name-results');
+    if (r) r.classList.remove('open');
+  }
+});
 
 // ═══════════════════════════════════════════════════
 // QR SCANNER
@@ -962,22 +1182,45 @@ async function lookupEmployee(empId) {
 
 function showEmployeeCard(emp) {
   currentEmployee = emp;
-  const names   = (emp.name || '').split(' ');
+  const names    = (emp.name || '').split(' ');
   const initials = ((names[0]?.[0] || '') + (names[1]?.[0] || '')).toUpperCase();
   document.getElementById('emp-avatar').textContent     = initials || '?';
   document.getElementById('emp-name').textContent       = emp.name     || '—';
   document.getElementById('emp-position').textContent   = emp.position || '—';
   document.getElementById('emp-id-display').textContent = emp.id       || '—';
+
   const banner = document.getElementById('status-banner');
   const btnIn  = document.getElementById('btn-clock-in');
   const btnOut = document.getElementById('btn-clock-out');
-  if (emp.lastAction === 'Clock In') {
-    banner.textContent = '● Currently Clocked In'; banner.className = 'status-banner clocked-in';
-    btnIn.disabled = true; btnOut.disabled = false;
+
+  // Check entry window (6:00 AM – 8:00 PM)
+  const now  = new Date();
+  const mins = now.getHours() * 60 + now.getMinutes();
+  const withinWindow = mins >= 360 && mins < 1200;
+
+  if (!withinWindow) {
+    // Outside entry window — block both buttons
+    banner.textContent = '⛔ Live entry not allowed after 8:00 PM';
+    banner.className   = 'status-banner clocked-out';
+    btnIn.disabled  = true;
+    btnOut.disabled = true;
+  } else if (emp.lastAction === 'Clock In') {
+    // Currently clocked in — only Clock Out allowed
+    banner.textContent = '● Currently Clocked In — Clock Out to leave or go on break';
+    banner.className   = 'status-banner clocked-in';
+    btnIn.disabled  = true;
+    btnOut.disabled = false;
   } else {
-    banner.textContent = '○ Not Yet Clocked In Today'; banner.className = 'status-banner clocked-out';
-    btnIn.disabled = false; btnOut.disabled = true;
+    // Not clocked in — only Clock In allowed
+    const msg = emp.lastAction === 'Clock Out'
+      ? '○ On Break / Clocked Out — Clock In to return'
+      : '○ Not Yet Clocked In Today';
+    banner.textContent = msg;
+    banner.className   = 'status-banner clocked-out';
+    btnIn.disabled  = false;
+    btnOut.disabled = true;
   }
+
   document.getElementById('idle-state').style.display = 'none';
   document.getElementById('emp-card').classList.add('visible');
 }
@@ -1015,19 +1258,35 @@ document.addEventListener('click', e => { if (!e.target.closest('.search-wrap'))
 // ═══════════════════════════════════════════════════
 async function submitClock(action) {
   if (!currentEmployee) return;
-  const timeStr = new Date().toLocaleTimeString('en-US', {hour:'2-digit',minute:'2-digit',second:'2-digit'});
-  if (WEB_APP_URL === "YOUR_GOOGLE_APPS_SCRIPT_WEB_APP_URL_HERE") { showConfirmation(action, currentEmployee.name, timeStr, true); return; }
+  const now  = new Date();
+  const mins = now.getHours() * 60 + now.getMinutes();
+  const timeStr = now.toLocaleTimeString('en-US', {hour:'2-digit',minute:'2-digit',second:'2-digit'});
+
+  // Frontend entry window check: 6:00 AM (360 mins) – 8:00 PM (1200 mins)
+  if (mins < 360 || mins >= 1200) {
+    showConfirmation(action, currentEmployee.name, timeStr, false,
+      'Live entries only allowed 6:00 AM – 8:00 PM.\nUse the Manual Entry tab after 8PM.');
+    return;
+  }
+
+  if (WEB_APP_URL === "YOUR_GOOGLE_APPS_SCRIPT_WEB_APP_URL_HERE") {
+    showConfirmation(action, currentEmployee.name, timeStr, true); return;
+  }
   try {
     const res  = await fetch(WEB_APP_URL, { method:'POST', headers:{'Content-Type':'application/json'}, body:JSON.stringify({empId:currentEmployee.id, action}) });
     const data = await res.json();
-    showConfirmation(action, currentEmployee.name, timeStr, data.success);
-  } catch { showConfirmation(action, currentEmployee.name, timeStr, false); }
+    if (data.success) {
+      showConfirmation(action, currentEmployee.name, timeStr, true);
+    } else {
+      showConfirmation(action, currentEmployee.name, timeStr, false, data.error || 'Submission failed.');
+    }
+  } catch { showConfirmation(action, currentEmployee.name, timeStr, false, 'Network error. Check connection.'); }
 }
 
 // ═══════════════════════════════════════════════════
 // CONFIRMATION
 // ═══════════════════════════════════════════════════
-function showConfirmation(action, name, time, success) {
+function showConfirmation(action, name, time, success, errorMsg) {
   const overlay  = document.getElementById('confirm-overlay');
   const icon     = document.getElementById('confirm-icon');
   const emoji    = document.getElementById('confirm-emoji');
@@ -1041,8 +1300,8 @@ function showConfirmation(action, name, time, success) {
     detail.textContent = action === 'Clock In' ? `Welcome, ${name}. Have a great shift!` : `Goodbye, ${name}. See you next time!`;
   } else {
     icon.className = 'confirm-icon error'; emoji.textContent = '!';
-    title.textContent = 'Something went wrong'; title.style.color = 'var(--red)';
-    detail.textContent = 'Please try again or see your supervisor.';
+    title.textContent = 'Entry Blocked'; title.style.color = 'var(--red)';
+    detail.textContent = errorMsg || 'Please try again or see your supervisor.';
   }
   document.getElementById('confirm-time').textContent = time;
   progress.classList.remove('go');
