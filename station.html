@@ -1220,37 +1220,8 @@ function showEmployeeCard(emp) {
   document.getElementById('emp-position').textContent   = emp.position || '—';
   document.getElementById('emp-id-display').textContent = emp.id       || '—';
 
-  const banner = document.getElementById('status-banner');
-  const btnIn  = document.getElementById('btn-clock-in');
-  const btnOut = document.getElementById('btn-clock-out');
-
-  // Check entry window (6:00 AM – 8:00 PM)
-  const now  = new Date();
-  const mins = now.getHours() * 60 + now.getMinutes();
-  const withinWindow = mins >= 360 && mins < 1200;
-
-  if (!withinWindow) {
-    // Outside entry window — block both buttons
-    banner.textContent = '⛔ Live entry not allowed after 8:00 PM';
-    banner.className   = 'status-banner clocked-out';
-    btnIn.disabled  = true;
-    btnOut.disabled = true;
-  } else if (emp.lastAction === 'Clock In') {
-    // Currently clocked in — only Clock Out allowed
-    banner.textContent = '● Currently Clocked In — Clock Out to leave or go on break';
-    banner.className   = 'status-banner clocked-in';
-    btnIn.disabled  = true;
-    btnOut.disabled = false;
-  } else {
-    // Not clocked in — only Clock In allowed
-    const msg = emp.lastAction === 'Clock Out'
-      ? '○ On Break / Clocked Out — Clock In to return'
-      : '○ Not Yet Clocked In Today';
-    banner.textContent = msg;
-    banner.className   = 'status-banner clocked-out';
-    btnIn.disabled  = false;
-    btnOut.disabled = true;
-  }
+  // Use centralised button state function
+  updateButtonStates(emp.lastAction || null);
 
   document.getElementById('idle-state').style.display = 'none';
   document.getElementById('emp-card').classList.add('visible');
@@ -1326,8 +1297,11 @@ async function submitClock(action) {
     const data = await res.json();
     if (data.success) {
       showConfirmation(action, currentEmployee.name, data.time || timeStr, true);
-      // Update local state so buttons flip immediately without waiting for re-lookup
-      if (currentEmployee) currentEmployee.lastAction = action;
+      // Immediately flip button states without waiting for re-lookup
+      if (currentEmployee) {
+        currentEmployee.lastAction = action;
+        updateButtonStates(action);
+      }
     } else {
       showConfirmation(action, currentEmployee.name, timeStr, false, data.error || 'Submission failed.');
     }
@@ -1364,6 +1338,45 @@ function showConfirmation(action, name, time, success, errorMsg) {
 // ═══════════════════════════════════════════════════
 // RESET / HELPERS
 // ═══════════════════════════════════════════════════
+function updateButtonStates(lastAction) {
+  const btnIn  = document.getElementById('btn-clock-in');
+  const btnOut = document.getElementById('btn-clock-out');
+  const banner = document.getElementById('status-banner');
+
+  const now  = new Date();
+  const mins = now.getHours() * 60 + now.getMinutes();
+  const withinWindow = mins >= 360 && mins < 1200;
+
+  if (!withinWindow) {
+    btnIn.disabled  = true;
+    btnOut.disabled = true;
+    banner.textContent = '⛔ Live entry not allowed outside 06:00 – 20:00';
+    banner.className   = 'status-banner clocked-out';
+    return;
+  }
+
+  if (lastAction === 'Clock In') {
+    // Employee is clocked in — only Clock Out allowed
+    btnIn.disabled  = true;
+    btnOut.disabled = false;
+    btnIn.style.opacity  = '0.3';
+    btnOut.style.opacity = '1';
+    banner.textContent = '● Currently Clocked In — tap Clock Out to leave';
+    banner.className   = 'status-banner clocked-in';
+  } else {
+    // Employee is not clocked in — only Clock In allowed
+    btnIn.disabled  = false;
+    btnOut.disabled = true;
+    btnIn.style.opacity  = '1';
+    btnOut.style.opacity = '0.3';
+    const msg = lastAction === 'Clock Out'
+      ? '○ On Break / Clocked Out — tap Clock In to return'
+      : '○ Not Yet Clocked In Today';
+    banner.textContent = msg;
+    banner.className   = 'status-banner clocked-out';
+  }
+}
+
 function resetStation() {
   currentEmployee = null;
   document.getElementById('manual-id-input').value   = '';
@@ -1371,6 +1384,9 @@ function resetStation() {
   document.getElementById('name-id-display').value   = '';
   document.getElementById('emp-card').classList.remove('visible');
   document.getElementById('idle-state').style.display = '';
+  // Reset button opacity
+  document.getElementById('btn-clock-in').style.opacity  = '1';
+  document.getElementById('btn-clock-out').style.opacity = '1';
   hideError();
 }
 
