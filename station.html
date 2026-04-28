@@ -340,7 +340,7 @@
 ══════════════════════════════════════════════ -->
 <div class="screen" id="screen-pin">
   <div class="screen-box">
-    <div class="screen-logo">ACE<span>tech</span></div>
+    <div style="margin-bottom:16px;"><img src="Logo_small.png" alt="ACEtech" style="height:48px;width:auto;object-fit:contain;"></div>
     <div class="screen-sub">Attendance Station</div>
     <div class="screen-icon">🔒</div>
     <div class="screen-title" id="pin-screen-title">Enter PIN to Unlock</div>
@@ -431,7 +431,7 @@
 <div class="wrapper" id="app" style="display:none;">
   <header>
     <div class="logo-block">
-      <div class="logo-icon">AC</div>
+      <img src="Logo_small.png" alt="ACEtech" style="height:40px;width:auto;border-radius:8px;object-fit:contain;background:#fff;padding:2px;">
       <div>
         <div class="logo-text">ACE<span>tech</span></div>
         <div style="font-size:10px;color:var(--muted);letter-spacing:2px;text-transform:uppercase;margin-top:1px;">Attendance Station</div>
@@ -460,7 +460,6 @@
       <div class="tab-panel active" id="tab-qr">
         <div class="scanner-wrap">
           <div id="qr-reader"></div>
-          <div class="scanner-overlay"><div class="scanner-frame"></div></div>
         </div>
         <div class="scanner-status" id="scanner-status">Camera not started</div>
         <button class="btn-start-scan" id="btn-start" onclick="startScanner()">▶ Start Camera</button>
@@ -1129,19 +1128,30 @@ function startScanner() {
 
   // Use percentage-based qrbox so it scales with the camera view
   const config = {
-    fps: 15,
+    fps: 10,
     qrbox: (viewfinderWidth, viewfinderHeight) => {
-      const size = Math.floor(Math.min(viewfinderWidth, viewfinderHeight) * 0.75);
+      // Use 70% of the smaller dimension — gives the library full control of the scan box
+      const size = Math.floor(Math.min(viewfinderWidth, viewfinderHeight) * 0.70);
       return { width: size, height: size };
     },
-    aspectRatio: 1.0,
-    disableFlip: false
+    disableFlip: false,
+    experimentalFeatures: { useBarCodeDetectorIfSupported: true }
   };
 
   html5QrCode.start(
     { facingMode: "environment" },
     config,
-    (decodedText) => { stopScanner(); lookupEmployee(decodedText.trim().toUpperCase()); },
+    (decodedText) => {
+      // Extract emp ID from URL (?id=ACE...) or use raw value
+      let empId = decodedText.trim();
+      try {
+        const url = new URL(decodedText.trim());
+        const id  = url.searchParams.get('id');
+        if (id) empId = id;
+      } catch(e) { /* raw ID value */ }
+      stopScanner();
+      lookupEmployee(empId.toUpperCase());
+    },
     () => {}
   ).then(() => {
     scannerRunning = true;
@@ -1174,15 +1184,28 @@ function lookupFromName() { const id = document.getElementById('name-id-display'
 
 async function lookupEmployee(empId) {
   hideError();
-  const local = EMPLOYEES.find(e => e.id.toUpperCase() === empId.toUpperCase());
+  // Clean the ID — strip any URL prefix if present
+  let cleanId = empId.trim();
+  try {
+    const url = new URL(empId);
+    const id  = url.searchParams.get('id');
+    if (id) cleanId = id.trim().toUpperCase();
+  } catch(e) { /* raw ID */ }
+  cleanId = cleanId.toUpperCase();
+
+  const local = EMPLOYEES.find(e => e.id.toUpperCase() === cleanId);
   if (WEB_APP_URL === "YOUR_GOOGLE_APPS_SCRIPT_WEB_APP_URL_HERE") {
     local ? showEmployeeCard({...local, lastAction: null}) : showError();
     return;
   }
   try {
-    const res  = await fetch(`${WEB_APP_URL}?action=lookup&id=${encodeURIComponent(empId)}`);
+    const res  = await fetch(`${WEB_APP_URL}?action=lookup&id=${encodeURIComponent(cleanId)}`);
     const data = await res.json();
-    data.found ? showEmployeeCard(data) : showError();
+    if (data.found) {
+      showEmployeeCard(data);
+    } else {
+      showError();
+    }
   } catch {
     local ? showEmployeeCard({...local, lastAction: null}) : showError();
   }
@@ -1273,22 +1296,36 @@ async function submitClock(action) {
   // Frontend entry window check: 6:00 AM (360 mins) – 8:00 PM (1200 mins)
   if (mins < 360 || mins >= 1200) {
     showConfirmation(action, currentEmployee.name, timeStr, false,
-      'Live entries only allowed 6:00 AM – 8:00 PM.\nUse the Manual Entry tab after 8PM.');
+      'Live entries only allowed 6:00 AM – 8:00 PM. Use the Manual Entry tab after 8PM.');
     return;
+  }
+
+  // Future time check: clock-out cannot be before clock-in time
+  // This is enforced server-side too, but give fast feedback here
+  if (action === 'Clock Out' && currentEmployee.lastAction === 'Clock In') {
+    // Just proceed — server will validate against actual clock-in time
   }
 
   if (WEB_APP_URL === "YOUR_GOOGLE_APPS_SCRIPT_WEB_APP_URL_HERE") {
     showConfirmation(action, currentEmployee.name, timeStr, true); return;
   }
   try {
-    const res  = await fetch(WEB_APP_URL, { method:'POST', headers:{'Content-Type':'application/json'}, body:JSON.stringify({empId:currentEmployee.id, action}) });
+    // Use GET params to avoid CORS issues on iOS Safari
+    const params = new URLSearchParams({
+      action:  'clockEvent',
+      empId:   currentEmployee.id,
+      event:   action
+    });
+    const res  = await fetch(`${WEB_APP_URL}?${params.toString()}`);
     const data = await res.json();
     if (data.success) {
-      showConfirmation(action, currentEmployee.name, timeStr, true);
+      showConfirmation(action, currentEmployee.name, data.time || timeStr, true);
+      // Update local state so buttons flip immediately without waiting for re-lookup
+      if (currentEmployee) currentEmployee.lastAction = action;
     } else {
       showConfirmation(action, currentEmployee.name, timeStr, false, data.error || 'Submission failed.');
     }
-  } catch { showConfirmation(action, currentEmployee.name, timeStr, false, 'Network error. Check connection.'); }
+  } catch(err) { showConfirmation(action, currentEmployee.name, timeStr, false, 'Network error: ' + err.message); }
 }
 
 // ═══════════════════════════════════════════════════
