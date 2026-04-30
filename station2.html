@@ -111,23 +111,14 @@
   .tab-panel{display:none;flex-direction:column;gap:12px;}
   .tab-panel.active{display:flex;}
 
-  .scanner-wrap{position:relative;width:100%;aspect-ratio:4/3;border-radius:12px;overflow:hidden;background:#000;border:2px solid var(--border);display:flex;align-items:center;justify-content:center;}
-  #qr-reader{width:100%!important;height:100%!important;border:none!important;position:relative;}
-  #qr-reader video{width:100%!important;height:100%!important;border-radius:10px;object-fit:cover;position:absolute;top:0;left:0;}
+  .scanner-wrap{position:relative;width:100%;aspect-ratio:4/3;border-radius:12px;overflow:hidden;background:#000;border:1px solid var(--border);}
+  #qr-reader{width:100%!important;border:none!important;}
+  #qr-reader video{width:100%!important;border-radius:10px;}
   #qr-reader img{display:none!important;}
-  /* Force library scan box to center */
+  /* Force library scan box styles */
   #qr-reader div[style]{
-    border-color: var(--gold) !important;
     box-shadow: none !important;
-  }
-  #qr-reader__scan_region{
     background: transparent !important;
-    display:flex !important;
-    align-items:center !important;
-    justify-content:center !important;
-  }
-  #qr-reader__scan_region video {
-    object-fit: cover !important;
   }
   .scanner-overlay{position:absolute;inset:0;pointer-events:none;display:flex;align-items:center;justify-content:center;}
   .scanner-frame{width:55%;height:55%;border:2px solid var(--gold);border-radius:12px;box-shadow:0 0 0 2000px rgba(0,0,0,0.45);position:relative;}
@@ -317,7 +308,7 @@
 ══════════════════════════════════════════════ -->
 <div class="screen" id="screen-blocked">
   <div class="screen-box">
-    <img src="Logo_small.png" alt="ACEtech" style="height:56px;width:auto;object-fit:contain;margin-bottom:8px;">
+    <img src="Logo_small.png" alt="ACEtech" style="height:56px;width:auto;object-fit:contain;margin-bottom:8px;" onerror="this.style.display='none'">
     <div class="screen-sub">Attendance Station</div>
     <div class="blocked-icon">🚫</div>
     <div class="screen-title">Device Not Authorised</div>
@@ -336,7 +327,7 @@
 ══════════════════════════════════════════════ -->
 <div class="screen" id="screen-admin-register">
   <div class="screen-box">
-    <img src="Logo_small.png" alt="ACEtech" style="height:56px;width:auto;object-fit:contain;margin-bottom:8px;">
+    <img src="Logo_small.png" alt="ACEtech" style="height:56px;width:auto;object-fit:contain;margin-bottom:8px;" onerror="this.style.display='none'">
     <div class="screen-sub">Admin — Register Device</div>
     <div class="screen-icon">🔐</div>
     <div class="screen-title">Enter Admin Password</div>
@@ -388,7 +379,7 @@
 ══════════════════════════════════════════════ -->
 <div class="screen" id="screen-admin-login">
   <div class="screen-box">
-    <img src="Logo_small.png" alt="ACEtech" style="height:56px;width:auto;object-fit:contain;margin-bottom:8px;">
+    <img src="Logo_small.png" alt="ACEtech" style="height:56px;width:auto;object-fit:contain;margin-bottom:8px;" onerror="this.style.display='none'">
     <div class="screen-sub">Admin Login</div>
     <div class="screen-icon">⚙️</div>
     <div class="screen-title">Admin Password</div>
@@ -445,7 +436,7 @@
 <div class="wrapper" id="app" style="display:none;">
   <header>
     <div class="logo-block">
-      <img src="Logo_small.png" alt="ACEtech" style="height:40px;width:auto;border-radius:8px;object-fit:contain;background:#fff;padding:2px;">
+      <img src="Logo_small.png" alt="ACEtech" style="height:40px;width:auto;object-fit:contain;" onerror="this.style.display='none'">
       <div>
         <div class="logo-text" style="display:none;">ACE<span>tech</span></div>
         <div style="font-size:10px;color:var(--muted);letter-spacing:2px;text-transform:uppercase;margin-top:1px;">Attendance Station</div>
@@ -1145,7 +1136,7 @@ function startScanner() {
     fps: 10,
     qrbox: (viewfinderWidth, viewfinderHeight) => {
       // Use 60% of the smaller dimension — centered scan box
-      const size = Math.floor(Math.min(viewfinderWidth, viewfinderHeight) * 0.60);
+      const size = Math.floor(Math.min(viewfinderWidth, viewfinderHeight) * 0.80);
       return { width: size, height: size };
     },
     disableFlip: false,
