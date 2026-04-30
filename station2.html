@@ -596,8 +596,8 @@
         </div>
         <div class="status-banner" id="status-banner">—</div>
         <div class="action-buttons">
-          <button class="btn-action btn-clock-in" id="btn-clock-in" onclick="submitClock('Clock In')">✓ &nbsp; Clock In</button>
-          <button class="btn-action btn-clock-out" id="btn-clock-out" onclick="submitClock('Clock Out')">✕ &nbsp; Clock Out</button>
+          <button class="btn-action btn-clock-in" id="btn-clock-in" onclick="submitClock('ClockIn')">✓ &nbsp; Clock In</button>
+          <button class="btn-action btn-clock-out" id="btn-clock-out" onclick="submitClock('ClockOut')">✕ &nbsp; Clock Out</button>
         </div>
         <button class="btn-cancel" onclick="resetStation()">← Back / Different Employee</button>
       </div>
@@ -1297,10 +1297,11 @@ async function submitClock(action) {
   }
 
   try {
+    // Encode action carefully — URLSearchParams handles spaces correctly
     const params = new URLSearchParams({
       action: 'clockEvent',
       empId:  currentEmployee.id,
-      event:  action
+      event:  action  // URLSearchParams encodes "Clock In" as "Clock+In" which GAS decodes correctly
     });
     const res  = await fetch(`${WEB_APP_URL}?${params.toString()}`);
     const data = await res.json();
@@ -1336,10 +1337,10 @@ function showConfirmation(action, name, time, success, errorMsg) {
   const detail   = document.getElementById('confirm-detail');
   const progress = document.getElementById('progress-fill');
   if (success) {
-    icon.className = 'confirm-icon success'; emoji.textContent = action === 'Clock In' ? '✓' : '✕';
-    title.textContent = action === 'Clock In' ? 'Clocked In!' : 'Clocked Out!';
-    title.style.color = action === 'Clock In' ? 'var(--green)' : 'var(--red)';
-    detail.textContent = action === 'Clock In' ? `Welcome, ${name}. Have a great shift!` : `Goodbye, ${name}. See you next time!`;
+    icon.className = 'confirm-icon success'; emoji.textContent = action === 'ClockIn' ? '✓' : '✕';
+    title.textContent = action === 'ClockIn' ? 'Clocked In!' : 'Clocked Out!';
+    title.style.color = action === 'ClockIn' ? 'var(--green)' : 'var(--red)';
+    detail.textContent = action === 'ClockIn' ? `Welcome, ${name}. Have a great shift!` : `Goodbye, ${name}. See you next time!`;
   } else {
     icon.className = 'confirm-icon error'; emoji.textContent = '!';
     title.textContent = 'Entry Blocked'; title.style.color = 'var(--red)';
@@ -1372,7 +1373,7 @@ function updateButtonStates(lastAction) {
     return;
   }
 
-  if (lastAction === 'Clock In') {
+  if (lastAction === 'ClockIn') {
     // Employee is clocked in — only Clock Out allowed
     btnIn.disabled  = true;
     btnOut.disabled = false;
@@ -1386,7 +1387,7 @@ function updateButtonStates(lastAction) {
     btnOut.disabled = true;
     btnIn.style.opacity  = '1';
     btnOut.style.opacity = '0.3';
-    const msg = lastAction === 'Clock Out'
+    const msg = lastAction === 'ClockOut'
       ? '○ On Break / Clocked Out — tap Clock In to return'
       : '○ Not Yet Clocked In Today';
     banner.textContent = msg;
