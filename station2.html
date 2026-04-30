@@ -111,16 +111,12 @@
   .tab-panel{display:none;flex-direction:column;gap:12px;}
   .tab-panel.active{display:flex;}
 
-  .scanner-wrap{position:relative;width:100%;border-radius:12px;overflow:hidden;background:#000;border:1px solid var(--border);}
+  .scanner-wrap{position:relative;width:100%;border-radius:12px;overflow:hidden;background:#000;border:1px solid var(--border);max-height:320px;}
   #qr-reader{width:100%!important;border:none!important;}
-  #qr-reader video{width:100%!important;max-height:280px;object-fit:cover;border-radius:10px;}
-  #qr-reader__scan_region{overflow:visible!important;}
+  #qr-reader video{width:100%!important;border-radius:10px;}
   #qr-reader img{display:none!important;}
-  /* Force library scan box styles */
-  #qr-reader div[style]{
-    box-shadow: none !important;
-    background: transparent !important;
-  }
+  #qr-reader img{display:none!important;}
+  /* Let library render naturally */
   .scanner-overlay{position:absolute;inset:0;pointer-events:none;display:flex;align-items:center;justify-content:center;}
   .scanner-frame{width:55%;height:55%;border:2px solid var(--gold);border-radius:12px;box-shadow:0 0 0 2000px rgba(0,0,0,0.45);position:relative;}
   .scanner-frame::before{content:'';position:absolute;left:0;right:0;height:2px;background:var(--gold);top:50%;animation:scan-move 2s ease-in-out infinite;opacity:0.85;}
