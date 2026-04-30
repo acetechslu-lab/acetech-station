@@ -112,6 +112,63 @@
   .tab-panel.active{display:flex;}
 
   .scanner-wrap{position:relative;width:100%;border-radius:12px;overflow:hidden;background:#000;border:1px solid var(--border);max-height:320px;}
+
+  /* Fullscreen camera overlay */
+  .scanner-fullscreen {
+    position:fixed;
+    inset:0;
+    z-index:9999;
+    background:#000;
+    display:none;
+    flex-direction:column;
+    align-items:center;
+    justify-content:center;
+  }
+  .scanner-fullscreen.active { display:flex; }
+  .scanner-fullscreen #qr-reader-fs {
+    width:100%;
+    max-width:600px;
+  }
+  .scanner-fullscreen #qr-reader-fs video {
+    width:100%!important;
+    border-radius:0;
+  }
+  .scanner-fs-header {
+    position:absolute;
+    top:0; left:0; right:0;
+    padding:16px 20px;
+    display:flex;
+    align-items:center;
+    justify-content:space-between;
+    background:linear-gradient(to bottom, rgba(0,0,0,0.8), transparent);
+    z-index:10;
+  }
+  .scanner-fs-title {
+    font-family:'Barlow Condensed',sans-serif;
+    font-weight:700;
+    font-size:1.1rem;
+    color:#fff;
+    letter-spacing:0.05em;
+  }
+  .scanner-fs-cancel {
+    background:rgba(255,255,255,0.15);
+    border:1px solid rgba(255,255,255,0.3);
+    color:#fff;
+    padding:6px 16px;
+    border-radius:20px;
+    font-size:0.85rem;
+    cursor:pointer;
+    font-family:'Barlow',sans-serif;
+  }
+  .scanner-fs-hint {
+    position:absolute;
+    bottom:40px; left:0; right:0;
+    text-align:center;
+    color:rgba(255,255,255,0.7);
+    font-size:0.85rem;
+    letter-spacing:0.1em;
+    text-transform:uppercase;
+  }
   #qr-reader{width:100%!important;border:none!important;}
   #qr-reader video{width:100%!important;border-radius:10px;}
   #qr-reader img{display:none!important;}
@@ -1123,17 +1180,19 @@ let html5QrCode = null;
 let scannerRunning = false;
 
 function startScanner() {
+  // Show fullscreen overlay
+  document.getElementById('scanner-fullscreen').classList.add('active');
   document.getElementById('scanner-status').textContent = 'Starting camera…';
   document.getElementById('btn-start').style.display = 'none';
   document.getElementById('btn-stop').style.display = 'block';
-  html5QrCode = new Html5Qrcode("qr-reader");
 
-  // Use percentage-based qrbox so it scales with the camera view
+  // Use fullscreen div for better camera rendering
+  html5QrCode = new Html5Qrcode("qr-reader-fs");
+
   const config = {
     fps: 10,
     qrbox: (viewfinderWidth, viewfinderHeight) => {
-      // Use 60% of the smaller dimension — centered scan box
-      const size = Math.floor(Math.min(viewfinderWidth, viewfinderHeight) * 0.80);
+      const size = Math.floor(Math.min(viewfinderWidth, viewfinderHeight) * 0.75);
       return { width: size, height: size };
     },
     disableFlip: false,
@@ -1144,8 +1203,7 @@ function startScanner() {
     { facingMode: "environment" },
     config,
     (decodedText) => {
-      if (isSubmitting) return; // Block scan during active submission
-      // Extract emp ID from URL (?id=ACE...) or use raw value
+      if (isSubmitting) return;
       let empId = decodedText.trim();
       try {
         const url = new URL(decodedText.trim());
@@ -1160,10 +1218,16 @@ function startScanner() {
     scannerRunning = true;
     document.getElementById('scanner-status').textContent = '● Camera active — hold QR card steady';
   }).catch(err => {
+    document.getElementById('scanner-fullscreen').classList.remove('active');
     document.getElementById('scanner-status').textContent = 'Camera error: ' + err;
     document.getElementById('btn-start').style.display = 'block';
     document.getElementById('btn-stop').style.display = 'none';
   });
+}
+
+function cancelFullscreenScan() {
+  stopScanner();
+  document.getElementById('scanner-fullscreen').classList.remove('active');
 }
 
 function stopScanner() {
@@ -1171,10 +1235,15 @@ function stopScanner() {
     html5QrCode.stop().then(() => {
       scannerRunning = false;
       document.getElementById('scanner-status').textContent = 'Camera stopped';
+      document.getElementById('scanner-fullscreen').classList.remove('active');
       document.getElementById('btn-start').style.display = 'block';
       document.getElementById('btn-stop').style.display = 'none';
     }).catch(() => {});
   }
+}
+
+function cancelFullscreenScan() {
+  stopScanner();
 }
 
 // ═══════════════════════════════════════════════════
@@ -1414,5 +1483,14 @@ function resetStation() {
 function showError() { document.getElementById('error-msg').classList.add('show'); }
 function hideError() { document.getElementById('error-msg').classList.remove('show'); }
 </script>
+<!-- Fullscreen camera overlay -->
+<div class="scanner-fullscreen" id="scanner-fullscreen">
+  <div class="scanner-fs-header">
+    <div class="scanner-fs-title">📷 Scan Employee QR Code</div>
+    <button class="scanner-fs-cancel" onclick="cancelFullscreenScan()">✕ Cancel</button>
+  </div>
+  <div id="qr-reader-fs"></div>
+  <div class="scanner-fs-hint">Hold QR card steady in the frame</div>
+</div>
 </body>
 </html>
