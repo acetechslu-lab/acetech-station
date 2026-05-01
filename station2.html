@@ -353,6 +353,12 @@
     .screen-title { font-size: 20px; }
     .screen-desc { font-size: 12px; }
   }
+
+  .offline-badge{display:none;position:fixed;bottom:16px;right:16px;background:#C9A227;color:#0a0f1a;padding:6px 14px;border-radius:20px;font-size:12px;font-weight:700;cursor:pointer;z-index:9000;box-shadow:0 2px 8px rgba(0,0,0,0.4);}
+  .offline-badge.visible{display:block;}
+  .net-dot{display:inline-block;width:8px;height:8px;border-radius:50%;background:#da3633;margin-right:6px;animation:blink 1.5s infinite;}
+  .net-dot.online{background:#2ea043;animation:none;}
+  @keyframes blink{0%,100%{opacity:1;}50%{opacity:0.3;}}
 </style>
 </head>
 <body>
@@ -480,7 +486,73 @@
       <input type="text" class="admin-input" id="new-device-name" placeholder="Device name" autocomplete="off">
       <button class="admin-add-btn" onclick="addDeviceManually()">Add</button>
     </div>
-    <div class="auth-error" id="device-add-error" style="margin-top:-12px;margin-bottom:0;"></div>
+    <div class="auth-error" id="device-add-error" style="margin-top:-12px;margin-bottom:0;">
+
+    <!-- ══ SITE MANAGEMENT ══ -->
+    <div class="admin-section-title" style="margin-top:24px;">📍 Site Management</div>
+
+    <div style="background:rgba(255,255,255,0.04);border:1px solid var(--border);border-radius:10px;padding:16px;margin-bottom:12px;">
+      <div style="font-size:11px;font-weight:600;color:var(--muted);margin-bottom:10px;text-transform:uppercase;letter-spacing:0.1em;">Add New Site</div>
+      <div class="admin-row">
+        <input type="text" class="admin-input" id="site-code" placeholder="Code (e.g. JS)" maxlength="6" style="text-transform:uppercase;">
+        <input type="text" class="admin-input" id="site-name" placeholder="Site Name (e.g. Javed Samuel)">
+        <button class="admin-add-btn" onclick="addSite()">+ Add</button>
+      </div>
+      <div id="site-add-result" style="font-size:12px;text-align:center;min-height:18px;margin-top:4px;"></div>
+    </div>
+
+    <div style="background:rgba(255,255,255,0.04);border:1px solid var(--border);border-radius:10px;padding:16px;margin-bottom:20px;">
+      <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:10px;">
+        <div style="font-size:11px;font-weight:600;color:var(--muted);text-transform:uppercase;letter-spacing:0.1em;">Active Sites</div>
+        <button onclick="loadSiteList()" style="padding:4px 12px;background:transparent;border:1px solid var(--border);border-radius:12px;color:var(--muted);font-size:11px;cursor:pointer;">🔄 Refresh</button>
+      </div>
+      <div id="site-list" style="max-height:200px;overflow-y:auto;font-size:12px;">
+        <div style="color:var(--muted);text-align:center;padding:12px;">Tap Refresh to load</div>
+      </div>
+    </div>
+
+    <!-- ══ EMPLOYEE MANAGEMENT ══ -->
+    <div class="admin-section-title" style="margin-top:24px;">👥 Employee Management</div>
+
+    <!-- Add Employee Form -->
+    <div style="background:rgba(255,255,255,0.04);border:1px solid var(--border);border-radius:10px;padding:16px;margin-bottom:12px;">
+      <div style="font-size:11px;font-weight:600;color:var(--muted);margin-bottom:10px;text-transform:uppercase;letter-spacing:0.1em;">Add New Employee</div>
+      <div class="admin-row">
+        <input type="text" class="admin-input" id="emp-name" placeholder="Full Name (e.g. Smith, John)">
+        <input type="text" class="admin-input" id="emp-nic"  placeholder="NIC Number">
+      </div>
+      <div class="admin-row">
+        <select class="admin-input" id="emp-position">
+          <option value="">Select Position...</option>
+          <option>Foreman</option><option>Mason</option><option>Carpenter</option>
+          <option>Helper</option><option>Labourer</option><option>Driver</option>
+          <option>Supervisor</option><option>Other</option>
+        </select>
+        <input type="number" class="admin-input" id="emp-rate" placeholder="Rate/hr ($)" step="0.01">
+      </div>
+      <div class="admin-row">
+        <select class="admin-input" id="emp-paycycle">
+          <option value="Fortnightly">Fortnightly (Construction)</option>
+          <option value="Monthly">Monthly (Office/Supervisors)</option>
+        </select>
+        <input type="text" class="admin-input" id="emp-bank" placeholder="Bank Account (optional)">
+        <button class="admin-add-btn" onclick="addEmployee()">+ Add</button>
+      </div>
+      <div id="emp-add-result" style="font-size:12px;text-align:center;min-height:18px;margin-top:4px;"></div>
+    </div>
+
+    <!-- Employee List -->
+    <div style="background:rgba(255,255,255,0.04);border:1px solid var(--border);border-radius:10px;padding:16px;">
+      <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:10px;">
+        <div style="font-size:11px;font-weight:600;color:var(--muted);text-transform:uppercase;letter-spacing:0.1em;">Current Employees</div>
+        <button onclick="loadEmployeeList()" style="padding:4px 12px;background:transparent;border:1px solid var(--border);border-radius:12px;color:var(--muted);font-size:11px;cursor:pointer;">🔄 Refresh</button>
+      </div>
+      <div id="emp-list" style="max-height:260px;overflow-y:auto;font-size:12px;">
+        <div style="color:var(--muted);text-align:center;padding:16px;">Tap Refresh to load</div>
+      </div>
+    </div>
+
+</div>
   </div>
 </div>
 
@@ -655,6 +727,18 @@
         </div>
         <div class="status-banner" id="status-banner">—</div>
         <div class="action-buttons">
+          <!-- Site selector — shown only for Clock In -->
+          <div id="site-select-wrap" style="margin-bottom:12px;display:none;">
+            <label style="font-size:11px;font-weight:600;color:var(--muted);text-transform:uppercase;letter-spacing:0.1em;display:block;margin-bottom:6px;">📍 Select Work Site</label>
+            <select id="site-select"
+              style="width:100%;padding:12px;background:var(--surface);border:1px solid var(--gold);border-radius:8px;color:var(--text);font-size:14px;font-weight:600;cursor:pointer;">
+              <option value="">— Select a site —</option>
+            </select>
+          </div>
+          <!-- Current site shown for Clock Out -->
+          <div id="site-display" style="margin-bottom:12px;display:none;padding:10px 14px;background:rgba(201,162,39,0.1);border:1px solid rgba(201,162,39,0.3);border-radius:8px;font-size:13px;color:var(--gold);font-weight:600;text-align:center;">
+            📍 <span id="site-display-text">—</span>
+          </div>
           <button class="btn-action btn-clock-in" id="btn-clock-in" onclick="submitClock('ClockIn')">✓ &nbsp; Clock In</button>
           <button class="btn-action btn-clock-out" id="btn-clock-out" onclick="submitClock('ClockOut')">✕ &nbsp; Clock Out</button>
         </div>
@@ -1293,8 +1377,10 @@ function showEmployeeCard(emp) {
   document.getElementById('emp-position').textContent   = emp.position || '—';
   document.getElementById('emp-id-display').textContent = emp.id       || '—';
 
+  // Store lastSite on currentEmployee
+  if (currentEmployee) currentEmployee.lastSite = emp.lastSite || null;
   // Use centralised button state function
-  updateButtonStates(emp.lastAction || null);
+  updateButtonStates(emp.lastAction || null, emp.lastSite || null);
 
   document.getElementById('idle-state').style.display = 'none';
   document.getElementById('emp-card').classList.add('visible');
@@ -1369,10 +1455,28 @@ async function submitClock(action) {
 
   try {
     // Encode action carefully — URLSearchParams handles spaces correctly
+    // Get selected site for Clock In
+    let site = '';
+    if (action === 'ClockIn') {
+      const siteSelect = document.getElementById('site-select');
+      site = siteSelect ? siteSelect.value : '';
+      if (!site) {
+        isSubmitting = false;
+        updateButtonStates(currentEmployee ? currentEmployee.lastAction : null,
+                           currentEmployee ? currentEmployee.lastSite   : null);
+        const banner = document.getElementById('status-banner');
+        if (banner) { banner.textContent = '⚠ Please select a site before clocking in'; banner.className = 'status-banner clocked-out'; }
+        return;
+      }
+    } else {
+      site = currentEmployee ? (currentEmployee.lastSite || '') : '';
+    }
+
     const params = new URLSearchParams({
       action: 'clockEvent',
       empId:  currentEmployee.id,
-      event:  action  // URLSearchParams encodes "Clock In" as "Clock+In" which GAS decodes correctly
+      event:  action,
+      site:   site
     });
     const res  = await fetch(`${WEB_APP_URL}?${params.toString()}`);
     const data = await res.json();
@@ -1381,7 +1485,8 @@ async function submitClock(action) {
       // Update local state and button appearance
       if (currentEmployee) {
         currentEmployee.lastAction = action;
-        updateButtonStates(action);
+        if (action === 'ClockIn') currentEmployee.lastSite = site;
+        updateButtonStates(action, currentEmployee.lastSite);
       }
       showConfirmation(action, currentEmployee.name, data.time || timeStr, true);
     } else {
@@ -1390,8 +1495,21 @@ async function submitClock(action) {
       showConfirmation(action, currentEmployee.name, timeStr, false, data.error || 'Submission failed.');
     }
   } catch(err) {
-    updateButtonStates(currentEmployee ? currentEmployee.lastAction : null);
-    showConfirmation(action, currentEmployee.name, timeStr, false, 'Network error: ' + err.message);
+    // Network error — save to offline queue
+    const now2   = new Date();
+    const padN   = n => String(n).padStart(2,'0');
+    const offlineTs = now2.getFullYear()+'-'+padN(now2.getMonth()+1)+'-'+padN(now2.getDate())
+                    +' '+padN(now2.getHours())+':'+padN(now2.getMinutes());
+    addToOfflineQueue(currentEmployee.id, currentEmployee.name, action, site, offlineTs);
+
+    // Update local state optimistically
+    if (currentEmployee) {
+      currentEmployee.lastAction = action;
+      if (action === 'ClockIn') currentEmployee.lastSite = site;
+      updateButtonStates(action, currentEmployee.lastSite);
+    }
+    showConfirmation(action, currentEmployee.name, timeStr, true,
+      '📵 Saved offline — will sync when connected');
   } finally {
     isSubmitting = false;
   }
@@ -1427,10 +1545,13 @@ function showConfirmation(action, name, time, success, errorMsg) {
 // ═══════════════════════════════════════════════════
 // RESET / HELPERS
 // ═══════════════════════════════════════════════════
-function updateButtonStates(lastAction) {
-  const btnIn  = document.getElementById('btn-clock-in');
-  const btnOut = document.getElementById('btn-clock-out');
-  const banner = document.getElementById('status-banner');
+function updateButtonStates(lastAction, lastSite) {
+  const btnIn      = document.getElementById('btn-clock-in');
+  const btnOut     = document.getElementById('btn-clock-out');
+  const banner     = document.getElementById('status-banner');
+  const siteWrap   = document.getElementById('site-select-wrap');
+  const siteDisp   = document.getElementById('site-display');
+  const siteDispTx = document.getElementById('site-display-text');
 
   const now  = new Date();
   const mins = now.getHours() * 60 + now.getMinutes();
@@ -1452,6 +1573,14 @@ function updateButtonStates(lastAction) {
     btnOut.style.opacity = '1';
     banner.textContent = '● Currently Clocked In — tap Clock Out to leave';
     banner.className   = 'status-banner clocked-in';
+    // Show current site, hide selector
+    if (siteWrap) siteWrap.style.display = 'none';
+    if (siteDisp) {
+      siteDisp.style.display = 'block';
+      if (siteDispTx) siteDispTx.textContent = lastSite
+        ? getSiteNameFromCode(lastSite) + ' (' + lastSite + ')'
+        : 'Site not recorded';
+    }
   } else {
     // Employee is not clocked in — only Clock In allowed
     btnIn.disabled  = false;
@@ -1459,10 +1588,16 @@ function updateButtonStates(lastAction) {
     btnIn.style.opacity  = '1';
     btnOut.style.opacity = '0.3';
     const msg = lastAction === 'ClockOut'
-      ? '○ On Break / Clocked Out — tap Clock In to return'
+      ? '○ Clocked Out — tap Clock In to return'
       : '○ Not Yet Clocked In Today';
     banner.textContent = msg;
     banner.className   = 'status-banner clocked-out';
+    // Show site selector, hide display
+    if (siteDisp) siteDisp.style.display = 'none';
+    if (siteWrap) {
+      siteWrap.style.display = 'block';
+      loadSiteDropdown();
+    }
   }
 }
 
@@ -1482,7 +1617,359 @@ function resetStation() {
 
 function showError() { document.getElementById('error-msg').classList.add('show'); }
 function hideError() { document.getElementById('error-msg').classList.remove('show'); }
+
+// ════════════════════════════════════════════════════════════════════════════
+// OFFLINE QUEUE — stores clock events when network is unavailable
+// Auto-syncs when connection is restored
+// ════════════════════════════════════════════════════════════════════════════
+const OFFLINE_KEY = 'acetech_offline_queue';
+let isOnline      = navigator.onLine;
+let syncInProgress = false;
+
+function getOfflineQueue() {
+  try {
+    return JSON.parse(localStorage.getItem(OFFLINE_KEY) || '[]');
+  } catch(e) { return []; }
+}
+
+function saveOfflineQueue(queue) {
+  localStorage.setItem(OFFLINE_KEY, JSON.stringify(queue));
+}
+
+function addToOfflineQueue(empId, empName, action, site, timestamp) {
+  const queue = getOfflineQueue();
+  queue.push({ empId, empName, action, site, timestamp, id: Date.now() });
+  saveOfflineQueue(queue);
+  updateOfflineBadge();
+}
+
+function updateOfflineBadge() {
+  const queue  = getOfflineQueue();
+  const badge  = document.getElementById('offline-badge');
+  const text   = document.getElementById('offline-badge-text');
+  const dot    = document.getElementById('net-indicator');
+
+  if (!badge) return;
+
+  if (!isOnline) {
+    dot.className = 'offline-indicator';
+    if (queue.length > 0) {
+      badge.classList.add('visible');
+      text.textContent = queue.length + ' pending (offline)';
+    } else {
+      badge.classList.add('visible');
+      text.textContent = 'Offline';
+    }
+  } else if (queue.length > 0) {
+    dot.className = 'offline-indicator';
+    badge.classList.add('visible');
+    text.textContent = queue.length + ' syncing...';
+  } else {
+    dot.className = 'offline-indicator online-indicator';
+    badge.classList.remove('visible');
+  }
+}
+
+function showOfflineQueue() {
+  const queue = getOfflineQueue();
+  if (queue.length === 0) {
+    alert('No pending offline entries.');
+    return;
+  }
+  const lines = queue.map((e,i) =>
+    `${i+1}. ${e.empName} — ${e.action} at ${e.timestamp} (${e.site || 'no site'})`
+  ).join('
+');
+  alert(`Pending offline entries (${queue.length}):
+
+${lines}
+
+These will sync automatically when connected.`);
+}
+
+async function syncOfflineQueue() {
+  if (syncInProgress || !isOnline) return;
+  const queue = getOfflineQueue();
+  if (queue.length === 0) return;
+
+  syncInProgress = true;
+  updateOfflineBadge();
+
+  const remaining = [];
+  for (const entry of queue) {
+    try {
+      const params = new URLSearchParams({
+        action:    'clockEvent',
+        empId:     entry.empId,
+        event:     entry.action,
+        site:      entry.site || '',
+        offlineTs: entry.timestamp // pass original timestamp for accurate logging
+      });
+      const res  = await fetch(`${WEB_APP_URL}?${params.toString()}`);
+      const data = await res.json();
+      if (!data.success) {
+        // Keep in queue if server rejected (e.g. duplicate) — but mark as error
+        entry.error = data.error || 'Server rejected';
+        remaining.push(entry);
+      }
+      // Small delay between syncs to avoid overwhelming the server
+      await new Promise(r => setTimeout(r, 500));
+    } catch(err) {
+      // Network still down — keep all remaining in queue
+      remaining.push(entry);
+      break;
+    }
+  }
+
+  saveOfflineQueue(remaining);
+  syncInProgress = false;
+  updateOfflineBadge();
+}
+
+// Network event listeners
+window.addEventListener('online', () => {
+  isOnline = true;
+  updateOfflineBadge();
+  setStatus('🟢 Back online — syncing offline entries...');
+  setTimeout(syncOfflineQueue, 1000);
+});
+
+window.addEventListener('offline', () => {
+  isOnline = false;
+  updateOfflineBadge();
+  setStatus('🔴 No internet connection — entries will be saved offline');
+});
+
+// Periodic sync attempt every 30 seconds
+setInterval(() => {
+  if (isOnline && getOfflineQueue().length > 0) syncOfflineQueue();
+}, 30000);
+
+// ════════════════════════════════════════════════════════════════════════════
+// SITE MANAGEMENT
+// ════════════════════════════════════════════════════════════════════════════
+let cachedSites = [];
+
+async function loadSiteDropdown() {
+  const select = document.getElementById('site-select');
+  if (!select) return;
+
+  // Use cached if available
+  if (cachedSites.length > 0) {
+    populateSiteSelect(select, cachedSites);
+    return;
+  }
+
+  try {
+    const res  = await fetch(`${WEB_APP_URL}?action=getSites`);
+    const data = await res.json();
+    if (data.success && data.sites) {
+      cachedSites = data.sites;
+      populateSiteSelect(select, cachedSites);
+    }
+  } catch(err) {
+    console.error('Failed to load sites:', err);
+  }
+}
+
+function populateSiteSelect(select, sites) {
+  select.innerHTML = '<option value="">— Select a site —</option>';
+  sites.forEach(s => {
+    const opt = document.createElement('option');
+    opt.value = s.code;
+    opt.textContent = `${s.name} (${s.code})`;
+    select.appendChild(opt);
+  });
+}
+
+function getSiteNameFromCode(code) {
+  const site = cachedSites.find(s => s.code === code);
+  return site ? site.name : code;
+}
+
+async function loadSiteList() {
+  const listDiv = document.getElementById('site-list');
+  if (!listDiv) return;
+  listDiv.innerHTML = '<div style="color:var(--muted);text-align:center;padding:12px;">⏳ Loading...</div>';
+
+  try {
+    const res  = await fetch(`${WEB_APP_URL}?action=getSites`);
+    const data = await res.json();
+    cachedSites = data.sites || [];
+
+    if (cachedSites.length === 0) {
+      listDiv.innerHTML = '<div style="color:var(--muted);text-align:center;padding:12px;">No sites found.</div>';
+      return;
+    }
+
+    listDiv.innerHTML = cachedSites.map(s => `
+      <div style="display:flex;align-items:center;justify-content:space-between;padding:8px 4px;border-bottom:1px solid var(--border);">
+        <div>
+          <span style="font-weight:700;color:var(--gold);font-size:12px;margin-right:8px;">${s.code}</span>
+          <span style="color:var(--text);">${s.name}</span>
+        </div>
+        <button onclick="removeSite('${s.code}','${s.name.replace(/'/g,"\'")}')"
+          style="padding:3px 10px;background:rgba(218,54,51,0.15);border:1px solid rgba(218,54,51,0.3);color:#f85149;border-radius:6px;font-size:11px;cursor:pointer;">
+          Remove
+        </button>
+      </div>
+    `).join('');
+  } catch(err) {
+    listDiv.innerHTML = `<div style="color:var(--red);text-align:center;padding:12px;">Error: ${err.message}</div>`;
+  }
+}
+
+async function addSite() {
+  const code   = document.getElementById('site-code').value.trim().toUpperCase();
+  const name   = document.getElementById('site-name').value.trim();
+  const result = document.getElementById('site-add-result');
+
+  if (!code || !name) {
+    result.style.color = 'var(--red)';
+    result.textContent = '⚠ Code and name are required.';
+    return;
+  }
+
+  result.style.color = 'var(--muted)';
+  result.textContent = '⏳ Adding...';
+
+  try {
+    const res  = await fetch(`${WEB_APP_URL}?action=addSite&code=${encodeURIComponent(code)}&name=${encodeURIComponent(name)}`);
+    const data = await res.json();
+    if (data.success) {
+      result.style.color = 'var(--green)';
+      result.textContent = `✓ Added: ${name} (${code})`;
+      document.getElementById('site-code').value = '';
+      document.getElementById('site-name').value = '';
+      cachedSites = []; // Clear cache
+      loadSiteList();
+    } else {
+      result.style.color = 'var(--red)';
+      result.textContent = '✗ ' + (data.error || 'Failed.');
+    }
+  } catch(err) {
+    result.style.color = 'var(--red)';
+    result.textContent = '✗ Network error.';
+  }
+}
+
+async function removeSite(code, name) {
+  if (!confirm(`Remove site: ${name} (${code})?`)) return;
+  try {
+    const res  = await fetch(`${WEB_APP_URL}?action=deleteSite&code=${encodeURIComponent(code)}`);
+    const data = await res.json();
+    if (data.success) { cachedSites = []; loadSiteList(); }
+    else alert('Error: ' + data.error);
+  } catch(err) { alert('Network error.'); }
+}
+
+// ════════════════════════════════════════════════════════════════════════════
+// EMPLOYEE MANAGEMENT
+// ════════════════════════════════════════════════════════════════════════════
+async function addEmployee() {
+  const name     = document.getElementById('emp-name').value.trim();
+  const nic      = document.getElementById('emp-nic').value.trim();
+  const position = document.getElementById('emp-position').value.trim();
+  const rate     = document.getElementById('emp-rate').value.trim();
+  const bank     = document.getElementById('emp-bank').value.trim();
+  const paycycle = document.getElementById('emp-paycycle')?.value || 'Fortnightly';
+  const result   = document.getElementById('emp-add-result');
+
+  if (!name || !nic || !position || !rate) {
+    result.style.color = 'var(--red)';
+    result.textContent = '⚠ Name, NIC, Position and Rate are required.';
+    return;
+  }
+
+  result.style.color = 'var(--muted)';
+  result.textContent = '⏳ Adding employee...';
+
+  try {
+    const params = new URLSearchParams({
+      action: 'addEmployee', name, nic, position, rate, bank, paycycle
+    });
+    const res  = await fetch(`${WEB_APP_URL}?${params.toString()}`);
+    const data = await res.json();
+
+    if (data.success) {
+      result.style.color = 'var(--green)';
+      result.textContent = `✓ Added ${data.name} — ID: ${data.empId}`;
+      // Clear form
+      ['emp-name','emp-nic','emp-rate','emp-bank'].forEach(id => {
+        document.getElementById(id).value = '';
+      });
+      document.getElementById('emp-position').value = '';
+      // Refresh list
+      loadEmployeeList();
+    } else {
+      result.style.color = 'var(--red)';
+      result.textContent = '✗ ' + (data.error || 'Failed to add employee.');
+    }
+  } catch(err) {
+    result.style.color = 'var(--red)';
+    result.textContent = '✗ Network error: ' + err.message;
+  }
+}
+
+async function loadEmployeeList() {
+  const listDiv = document.getElementById('emp-list');
+  listDiv.innerHTML = '<div style="color:var(--muted);text-align:center;padding:12px;">⏳ Loading...</div>';
+
+  try {
+    const res  = await fetch(`${WEB_APP_URL}?action=getEmployees`);
+    const data = await res.json();
+
+    if (!data.employees || data.employees.length === 0) {
+      listDiv.innerHTML = '<div style="color:var(--muted);text-align:center;padding:12px;">No employees found. Add one above.</div>';
+      return;
+    }
+
+    listDiv.innerHTML = data.employees.map(emp => `
+      <div style="display:flex;align-items:center;justify-content:space-between;padding:8px 4px;border-bottom:1px solid var(--border);">
+        <div>
+          <div style="font-weight:600;color:var(--text);">${emp.name}</div>
+          <div style="color:var(--muted);font-size:11px;">${emp.id} · ${emp.position} · $${parseFloat(emp.rate).toFixed(2)}/hr · ${emp.payCycle || 'Fortnightly'}</div>
+        </div>
+        <button onclick="removeEmployee('${emp.id}','${emp.name.replace(/'/g,"\'")}')"
+          style="padding:4px 10px;background:rgba(218,54,51,0.15);border:1px solid rgba(218,54,51,0.3);
+                 color:#f85149;border-radius:6px;font-size:11px;cursor:pointer;">
+          Remove
+        </button>
+      </div>
+    `).join('');
+  } catch(err) {
+    listDiv.innerHTML = `<div style="color:var(--red);text-align:center;padding:12px;">Error: ${err.message}</div>`;
+  }
+}
+
+async function removeEmployee(empId, empName) {
+  if (!confirm(`Remove ${empName}? This cannot be undone.`)) return;
+
+  const listDiv = document.getElementById('emp-list');
+  try {
+    const res  = await fetch(`${WEB_APP_URL}?action=deleteEmployee&id=${encodeURIComponent(empId)}`);
+    const data = await res.json();
+    if (data.success) {
+      loadEmployeeList();
+    } else {
+      alert('Error: ' + (data.error || 'Could not remove employee.'));
+    }
+  } catch(err) {
+    alert('Network error: ' + err.message);
+  }
+}
+
+// ── Initialization ─────────────────────────────────────────────────────────
+updateOfflineBadge();
+setTimeout(() => { if (isOnline) syncOfflineQueue(); }, 2000);
+
 </script>
+<!-- Offline queue badge -->
+<div class="offline-badge" id="offline-badge" onclick="showOfflineQueue()">
+  <span class="offline-indicator" id="net-indicator"></span>
+  <span id="offline-badge-text">0 pending</span>
+</div>
+
 <!-- Fullscreen camera overlay -->
 <div class="scanner-fullscreen" id="scanner-fullscreen">
   <div class="scanner-fs-header">
