@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no">
-<title>ACEtech — Attendance Station</title>
+<title>ACEtech - Attendance Station</title>
 <link href="https://fonts.googleapis.com/css2?family=Barlow+Condensed:wght@300;400;600;700;800&family=Barlow:wght@300;400;500;600&display=swap" rel="stylesheet">
 <script src="https://cdnjs.cloudflare.com/ajax/libs/html5-qrcode/2.3.8/html5-qrcode.min.js"></script>
 <style>
@@ -248,10 +248,10 @@
   .footer-brand{font-family:'Barlow Condensed',sans-serif;font-size:12px;color:var(--gold-dim);letter-spacing:2px;text-transform:uppercase;}
 
   /* ══════════════════════════════════════════════
-     RESPONSIVE — Portrait tablet & mobile
+     RESPONSIVE - Portrait tablet & mobile
   ══════════════════════════════════════════════ */
 
-  /* Portrait tablet (≤ 900px wide) — stack panels vertically */
+  /* Portrait tablet (≤ 900px wide) - stack panels vertically */
   @media (max-width: 900px) {
     html, body { overflow-y: auto; }
 
@@ -306,7 +306,7 @@
     .screen-logo { font-size: 26px; }
   }
 
-  /* Phone (≤ 480px) — further tighten up */
+  /* Phone (≤ 480px) - further tighten up */
   @media (max-width: 480px) {
     header { padding: 10px 14px; gap: 8px; }
     .header-right { gap: 10px; }
@@ -333,10 +333,10 @@
     .numpad { max-width: 280px; gap: 12px; }
     .num-btn { padding: 18px; font-size: 24px; }
 
-    /* Name search dropdown — full screen height */
+    /* Name search dropdown - full screen height */
     .name-results { max-height: 220px; }
 
-    /* Action buttons — maximum tap area */
+    /* Action buttons - maximum tap area */
     .btn-action { padding: 20px; font-size: 22px; border-radius: 14px; }
 
     /* Employee card */
@@ -375,7 +375,7 @@
     <div class="screen-desc">This device is not registered to use the ACEtech Attendance Station. Please contact your administrator to register this device.</div>
     <div style="margin-bottom:16px;">
       <div class="admin-section-title" style="margin-bottom:8px;">Your Device Code</div>
-      <div class="device-code-box" id="blocked-device-code">—</div>
+      <div class="device-code-box" id="blocked-device-code">-</div>
     </div>
     <div class="auth-error show" id="blocked-hint" style="color:var(--muted);">Give this code to your admin to get approved.</div>
     <button class="auth-btn secondary" style="margin-top:12px;" onclick="showAdminRegister()">Admin: Register This Device</button>
@@ -388,7 +388,7 @@
 <div class="screen" id="screen-admin-register">
   <div class="screen-box">
     <img src="data:image/png;base64,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" alt="ACEtech" style="height:56px;width:auto;object-fit:contain;margin-bottom:8px;" onerror="this.style.display='none'">
-    <div class="screen-sub">Admin — Register Device</div>
+    <div class="screen-sub">Admin - Register Device</div>
     <div class="screen-icon">🔐</div>
     <div class="screen-title">Enter Admin Password</div>
     <div class="screen-desc">Enter the admin password to approve and name this device.</div>
@@ -621,7 +621,7 @@
         <div>
           <label class="field-label">Selected Employee ID</label>
           <div class="field-row">
-            <input type="text" class="text-input" id="name-id-display" placeholder="— select a name above —"
+            <input type="text" class="text-input" id="name-id-display" placeholder="- select a name above -"
               readonly style="opacity:0.7;cursor:default;font-size:14px;letter-spacing:1px;">
             <button class="go-btn" onclick="lookupFromName()">GO</button>
           </div>
@@ -666,7 +666,7 @@
             </div>
             <input type="hidden" id="entry-emp-id">
             <div id="entry-emp-badge" style="display:none;margin-top:6px;text-align:center;">
-              <span style="background:var(--surface);border:1px solid var(--gold);border-radius:6px;padding:3px 14px;font-family:'Barlow Condensed',sans-serif;font-size:13px;letter-spacing:2px;color:var(--gold);" id="entry-emp-badge-text">—</span>
+              <span style="background:var(--surface);border:1px solid var(--gold);border-radius:6px;padding:3px 14px;font-family:'Barlow Condensed',sans-serif;font-size:13px;letter-spacing:2px;color:var(--gold);" id="entry-emp-badge-text">-</span>
             </div>
           </div>
 
@@ -721,23 +721,23 @@
       <div class="emp-card" id="emp-card">
         <div class="emp-avatar" id="emp-avatar">--</div>
         <div style="text-align:center">
-          <div class="emp-name" id="emp-name">—</div>
-          <div class="emp-meta" id="emp-position">—</div>
-          <div class="emp-id-badge" id="emp-id-display">—</div>
+          <div class="emp-name" id="emp-name">-</div>
+          <div class="emp-meta" id="emp-position">-</div>
+          <div class="emp-id-badge" id="emp-id-display">-</div>
         </div>
-        <div class="status-banner" id="status-banner">—</div>
+        <div class="status-banner" id="status-banner">-</div>
         <div class="action-buttons">
-          <!-- Site selector — shown only for Clock In -->
+          <!-- Site selector - shown only for Clock In -->
           <div id="site-select-wrap" style="margin-bottom:12px;display:none;">
             <label style="font-size:11px;font-weight:600;color:var(--muted);text-transform:uppercase;letter-spacing:0.1em;display:block;margin-bottom:6px;">📍 Select Work Site</label>
             <select id="site-select"
               style="width:100%;padding:12px;background:var(--surface);border:1px solid var(--gold);border-radius:8px;color:var(--text);font-size:14px;font-weight:600;cursor:pointer;">
-              <option value="">— Select a site —</option>
+              <option value="">- Select a site -</option>
             </select>
           </div>
           <!-- Current site shown for Clock Out -->
           <div id="site-display" style="margin-bottom:12px;display:none;padding:10px 14px;background:rgba(201,162,39,0.1);border:1px solid rgba(201,162,39,0.3);border-radius:8px;font-size:13px;color:var(--gold);font-weight:600;text-align:center;">
-            📍 <span id="site-display-text">—</span>
+            📍 <span id="site-display-text">-</span>
           </div>
           <button class="btn-action btn-clock-in" id="btn-clock-in" onclick="submitClock('ClockIn')">✓ &nbsp; Clock In</button>
           <button class="btn-action btn-clock-out" id="btn-clock-out" onclick="submitClock('ClockOut')">✕ &nbsp; Clock Out</button>
@@ -762,25 +762,25 @@
     <div class="confirm-icon" id="confirm-icon"><span id="confirm-emoji">✓</span></div>
     <div class="confirm-title" id="confirm-title">Clocked In!</div>
     <div class="confirm-detail" id="confirm-detail">Have a great shift.</div>
-    <div class="confirm-time" id="confirm-time">—</div>
+    <div class="confirm-time" id="confirm-time">-</div>
     <div class="progress-bar"><div class="progress-fill" id="progress-fill"></div></div>
     <div style="margin-top:10px;font-size:12px;color:var(--muted);">Returning to station in 3 seconds…</div>
   </div>
 </div>
 
 <script>
-// ═══════════════════════════════════════════════════
-// CONFIG — change these before deploying
-// ═══════════════════════════════════════════════════
-const DEFAULT_PIN        = "1234";   // ← change this to your PIN
-const DEFAULT_ADMIN_PASS = "acetech2025admin"; // ← change this to your admin password
+// --------------------------------------------------
+// CONFIG - change these before deploying
+// --------------------------------------------------
+const DEFAULT_PIN        = "1234";   // ? change this to your PIN
+const DEFAULT_ADMIN_PASS = "acetech2025admin"; // ? change this to your admin password
 const AUTO_LOCK_MINUTES  = 60;
 const WEB_APP_URL        = "https://script.google.com/macros/s/AKfycbyg70dUxHNXXo4ztyRLFY4UK_1yCh5wkMfwVCc19EuWMSdjnCNLuz_ai9Q4WCjqDvIVNA/exec";
 
-// ═══════════════════════════════════════════════════
-// EMPLOYEE LIST — replace with your real employees
-// ═══════════════════════════════════════════════════
-// Employee list — loaded live from Google Sheet on startup
+// --------------------------------------------------
+// EMPLOYEE LIST - replace with your real employees
+// --------------------------------------------------
+// Employee list - loaded live from Google Sheet on startup
 let EMPLOYEES = [];
 
 async function loadEmployeesFromSheet() {
@@ -794,7 +794,7 @@ async function loadEmployeesFromSheet() {
     const data = await res.json();
     if (data.success && data.employees.length > 0) {
       EMPLOYEES = data.employees;
-      console.log(`✅ Loaded ${EMPLOYEES.length} employees from sheet`);
+      console.log(`? Loaded ${EMPLOYEES.length} employees from sheet`);
     } else {
       console.warn("No employees returned from sheet");
     }
@@ -803,9 +803,9 @@ async function loadEmployeesFromSheet() {
   }
 }
 
-// ═══════════════════════════════════════════════════
+// --------------------------------------------------
 // STORAGE HELPERS (localStorage for persistence)
-// ═══════════════════════════════════════════════════
+// --------------------------------------------------
 const store = {
   get: k => { try { return JSON.parse(localStorage.getItem('acetech_'+k)); } catch { return null; } },
   set: (k,v) => localStorage.setItem('acetech_'+k, JSON.stringify(v)),
@@ -816,9 +816,9 @@ function getAdminPass()  { return store.get('admin_pass') || DEFAULT_ADMIN_PASS;
 function getDevices()    { return store.get('devices')    || []; }
 function saveDevices(d)  { store.set('devices', d); }
 
-// ═══════════════════════════════════════════════════
+// --------------------------------------------------
 // DEVICE FINGERPRINT
-// ═══════════════════════════════════════════════════
+// --------------------------------------------------
 function getDeviceFingerprint() {
   const nav = window.navigator;
   const raw = [
@@ -847,9 +847,9 @@ function isDeviceApproved() {
   return devices.some(d => d.code === DEVICE_FP);
 }
 
-// ═══════════════════════════════════════════════════
+// --------------------------------------------------
 // SCREEN ROUTING
-// ═══════════════════════════════════════════════════
+// --------------------------------------------------
 function showScreen(id) {
   document.querySelectorAll('.screen').forEach(s => s.classList.remove('active'));
   document.getElementById('app').style.display = 'none';
@@ -863,9 +863,9 @@ function showApp() {
   startAutoLock();
 }
 
-// ═══════════════════════════════════════════════════
+// --------------------------------------------------
 // INIT
-// ═══════════════════════════════════════════════════
+// --------------------------------------------------
 window.addEventListener('load', () => {
   document.getElementById('blocked-device-code').textContent = DEVICE_FP;
   // Load employees from sheet in background
@@ -877,9 +877,9 @@ window.addEventListener('load', () => {
   }
 });
 
-// ═══════════════════════════════════════════════════
+// --------------------------------------------------
 // PIN LOGIC
-// ═══════════════════════════════════════════════════
+// --------------------------------------------------
 let pinEntry = '';
 
 function pinPress(digit) {
@@ -929,9 +929,9 @@ function lockStation() {
   showScreen('screen-pin');
 }
 
-// ═══════════════════════════════════════════════════
+// --------------------------------------------------
 // AUTO-LOCK
-// ═══════════════════════════════════════════════════
+// --------------------------------------------------
 let lockTimer = null;
 let lockRemaining = AUTO_LOCK_MINUTES * 60;
 let lockInterval = null;
@@ -970,9 +970,9 @@ function stopAutoLock() {
   );
 }
 
-// ═══════════════════════════════════════════════════
-// ADMIN — from blocked screen
-// ═══════════════════════════════════════════════════
+// --------------------------------------------------
+// ADMIN - from blocked screen
+// --------------------------------------------------
 function showAdminRegister() {
   document.getElementById('reg-admin-pass').value = '';
   document.getElementById('reg-device-name').value = '';
@@ -993,9 +993,9 @@ function registerThisDevice() {
   showScreen('screen-pin');
 }
 
-// ═══════════════════════════════════════════════════
-// ADMIN — from PIN screen
-// ═══════════════════════════════════════════════════
+// --------------------------------------------------
+// ADMIN - from PIN screen
+// --------------------------------------------------
 function showAdminFromPin() {
   document.getElementById('admin-login-pass').value = '';
   document.getElementById('admin-login-error').classList.remove('show');
@@ -1081,7 +1081,7 @@ function changePin() {
   if (!/^\d{4}$/.test(p1)) { errEl.textContent = 'PIN must be exactly 4 digits.'; errEl.classList.add('show'); return; }
   if (p1 !== p2) { errEl.textContent = 'PINs do not match.'; errEl.classList.add('show'); return; }
   store.set('pin', p1);
-  errEl.textContent = '✓ PIN updated successfully.'; errEl.style.color = 'var(--green)'; errEl.classList.add('show');
+  errEl.textContent = 'OK PIN updated successfully.'; errEl.style.color = 'var(--green)'; errEl.classList.add('show');
   setTimeout(() => { errEl.classList.remove('show'); errEl.style.color = ''; }, 2000);
   document.getElementById('new-pin').value = '';
   document.getElementById('confirm-pin').value = '';
@@ -1092,14 +1092,14 @@ function changeAdminPass() {
   const errEl = document.getElementById('admin-pass-error');
   if (p.length < 6) { errEl.textContent = 'Password must be at least 6 characters.'; errEl.classList.add('show'); return; }
   store.set('admin_pass', p);
-  errEl.textContent = '✓ Admin password updated.'; errEl.style.color = 'var(--green)'; errEl.classList.add('show');
+  errEl.textContent = 'OK Admin password updated.'; errEl.style.color = 'var(--green)'; errEl.classList.add('show');
   setTimeout(() => { errEl.classList.remove('show'); errEl.style.color = ''; }, 2000);
   document.getElementById('new-admin-pass').value = '';
 }
 
-// ═══════════════════════════════════════════════════
+// --------------------------------------------------
 // CLOCK
-// ═══════════════════════════════════════════════════
+// --------------------------------------------------
 function updateClock() {
   const now = new Date();
   const days = ['Sunday','Monday','Tuesday','Wednesday','Thursday','Friday','Saturday'];
@@ -1111,9 +1111,9 @@ function updateClock() {
 setInterval(updateClock, 1000);
 updateClock();
 
-// ═══════════════════════════════════════════════════
+// --------------------------------------------------
 // TABS
-// ═══════════════════════════════════════════════════
+// --------------------------------------------------
 let activeTab = 'qr';
 const TAB_IDS = ['qr','manual','name','entry'];
 function switchTab(tab) {
@@ -1124,9 +1124,9 @@ function switchTab(tab) {
   hideError();
 }
 
-// ═══════════════════════════════════════════════════
-// MANUAL ENTRY — PASSWORD & FORM
-// ═══════════════════════════════════════════════════
+// --------------------------------------------------
+// MANUAL ENTRY - PASSWORD & FORM
+// --------------------------------------------------
 let manualEntryUnlocked = false;
 
 function unlockManualEntry() {
@@ -1209,7 +1209,7 @@ async function submitManualEntry() {
 
   const btn = document.getElementById('entry-submit-btn');
   btn.disabled = true;
-  btn.textContent = '⏳ Submitting…';
+  btn.textContent = '... Submitting...';
 
   try {
     // Use GET with URL params instead of POST to avoid CORS issues with Apps Script
@@ -1224,7 +1224,7 @@ async function submitManualEntry() {
     const res  = await fetch(`${WEB_APP_URL}?${params.toString()}`);
     const data = await res.json();
     if (data.success) {
-      showEntryResult(`✓ Entry saved for ${data.empName} on ${date}`, true);
+      showEntryResult(`OK Entry saved for ${data.empName} on ${date}`, true);
       document.getElementById('entry-clock-in').value  = '';
       document.getElementById('entry-clock-out').value = '';
       document.getElementById('entry-note').value      = '';
@@ -1236,7 +1236,7 @@ async function submitManualEntry() {
   }
 
   btn.disabled = false;
-  btn.textContent = '✓   Submit Entry';
+  btn.textContent = 'OK   Submit Entry';
 }
 
 function showEntryResult(msg, success) {
@@ -1257,16 +1257,16 @@ document.addEventListener('click', e => {
   }
 });
 
-// ═══════════════════════════════════════════════════
+// --------------------------------------------------
 // QR SCANNER
-// ═══════════════════════════════════════════════════
+// --------------------------------------------------
 let html5QrCode = null;
 let scannerRunning = false;
 
 function startScanner() {
   // Show fullscreen overlay
   document.getElementById('scanner-fullscreen').classList.add('active');
-  document.getElementById('scanner-status').textContent = 'Starting camera…';
+  document.getElementById('scanner-status').textContent = 'Starting camera...';
   document.getElementById('btn-start').style.display = 'none';
   document.getElementById('btn-stop').style.display = 'block';
 
@@ -1300,7 +1300,7 @@ function startScanner() {
     () => {}
   ).then(() => {
     scannerRunning = true;
-    document.getElementById('scanner-status').textContent = '● Camera active — hold QR card steady';
+    document.getElementById('scanner-status').textContent = '* Camera active - hold QR card steady';
   }).catch(err => {
     document.getElementById('scanner-fullscreen').classList.remove('active');
     document.getElementById('scanner-status').textContent = 'Camera error: ' + err;
@@ -1330,18 +1330,18 @@ function cancelFullscreenScan() {
   stopScanner();
 }
 
-// ═══════════════════════════════════════════════════
+// --------------------------------------------------
 // EMPLOYEE LOOKUP
-// ═══════════════════════════════════════════════════
+// --------------------------------------------------
 let currentEmployee = null;
-let isSubmitting   = false;  // Global lock — prevents any concurrent clock submissions
+let isSubmitting   = false;  // Global lock - prevents any concurrent clock submissions
 
 function lookupById()     { const id = document.getElementById('manual-id-input').value.trim().toUpperCase(); if (id) lookupEmployee(id); }
-function lookupFromName() { const id = document.getElementById('name-id-display').value.trim().toUpperCase(); if (id && id !== '—') lookupEmployee(id); }
+function lookupFromName() { const id = document.getElementById('name-id-display').value.trim().toUpperCase(); if (id && id !== '-') lookupEmployee(id); }
 
 async function lookupEmployee(empId) {
   hideError();
-  // Clean the ID — strip any URL prefix if present
+  // Clean the ID - strip any URL prefix if present
   let cleanId = empId.trim();
   try {
     const url = new URL(empId);
@@ -1373,9 +1373,9 @@ function showEmployeeCard(emp) {
   const names    = (emp.name || '').split(' ');
   const initials = ((names[0]?.[0] || '') + (names[1]?.[0] || '')).toUpperCase();
   document.getElementById('emp-avatar').textContent     = initials || '?';
-  document.getElementById('emp-name').textContent       = emp.name     || '—';
-  document.getElementById('emp-position').textContent   = emp.position || '—';
-  document.getElementById('emp-id-display').textContent = emp.id       || '—';
+  document.getElementById('emp-name').textContent       = emp.name     || '-';
+  document.getElementById('emp-position').textContent   = emp.position || '-';
+  document.getElementById('emp-id-display').textContent = emp.id       || '-';
 
   // Store lastSite on currentEmployee
   if (currentEmployee) currentEmployee.lastSite = emp.lastSite || null;
@@ -1386,9 +1386,9 @@ function showEmployeeCard(emp) {
   document.getElementById('emp-card').classList.add('visible');
 }
 
-// ═══════════════════════════════════════════════════
+// --------------------------------------------------
 // NAME SEARCH
-// ═══════════════════════════════════════════════════
+// --------------------------------------------------
 function searchByName(query) {
   const resultsEl = document.getElementById('name-results');
   document.getElementById('name-id-display').value = '';
@@ -1416,13 +1416,13 @@ function selectEmployee(id, name) {
 function handleNameKey(e) { if (e.key === 'Escape') document.getElementById('name-results').classList.remove('open'); }
 document.addEventListener('click', e => { if (!e.target.closest('.search-wrap')) document.getElementById('name-results').classList.remove('open'); });
 
-// ═══════════════════════════════════════════════════
+// --------------------------------------------------
 // CLOCK IN / OUT
-// ═══════════════════════════════════════════════════
+// --------------------------------------------------
 async function submitClock(action) {
   if (!currentEmployee) { showError(); return; }
 
-  // ── Global submission lock — blocks ALL concurrent taps/scans ──
+  // ?? Global submission lock - blocks ALL concurrent taps/scans ??
   if (isSubmitting) return;
   isSubmitting = true;
 
@@ -1439,11 +1439,11 @@ async function submitClock(action) {
   const pad  = n => String(n).padStart(2,'0');
   const timeStr = pad(now.getHours())+':'+pad(now.getMinutes())+':'+pad(now.getSeconds());
 
-  // Entry window check: 6:00 AM – 8:00 PM
+  // Entry window check: 6:00 AM - 8:00 PM
   if (mins < 360 || mins >= 1200) {
     isSubmitting = false;
     showConfirmation(action, currentEmployee.name, timeStr, false,
-      'Live entries only allowed 06:00 – 20:00. Use the Manual Entry tab.');
+      'Live entries only allowed 06:00 - 20:00. Use the Manual Entry tab.');
     return;
   }
 
@@ -1453,10 +1453,11 @@ async function submitClock(action) {
     return;
   }
 
+  // Declare site before try so catch block can access it
+  let site = '';
+
   try {
-    // Encode action carefully — URLSearchParams handles spaces correctly
     // Get selected site for Clock In
-    let site = '';
     if (action === 'ClockIn') {
       const siteSelect = document.getElementById('site-select');
       site = siteSelect ? siteSelect.value : '';
@@ -1465,7 +1466,7 @@ async function submitClock(action) {
         updateButtonStates(currentEmployee ? currentEmployee.lastAction : null,
                            currentEmployee ? currentEmployee.lastSite   : null);
         const banner = document.getElementById('status-banner');
-        if (banner) { banner.textContent = '⚠ Please select a site before clocking in'; banner.className = 'status-banner clocked-out'; }
+        if (banner) { banner.textContent = '[!] Please select a site before clocking in'; banner.className = 'status-banner clocked-out'; }
         return;
       }
     } else {
@@ -1490,16 +1491,16 @@ async function submitClock(action) {
       }
       showConfirmation(action, currentEmployee.name, data.time || timeStr, true);
     } else {
-      // Failed — restore buttons to correct state
+      // Failed - restore buttons to correct state
       updateButtonStates(currentEmployee ? currentEmployee.lastAction : null);
       showConfirmation(action, currentEmployee.name, timeStr, false, data.error || 'Submission failed.');
     }
   } catch(err) {
-    // Network error — save to offline queue
+    // Network error - save to offline queue
     const now2   = new Date();
-    const padN   = n => String(n).padStart(2,'0');
-    const offlineTs = now2.getFullYear()+'-'+padN(now2.getMonth()+1)+'-'+padN(now2.getDate())
-                    +' '+padN(now2.getHours())+':'+padN(now2.getMinutes());
+    const padOffN   = n => String(n).padStart(2,'0');
+    const offlineTs = now2.getFullYear()+'-'+padOffN(now2.getMonth()+1)+'-'+padOffN(now2.getDate())
+                    +' '+padOffN(now2.getHours())+':'+padOffN(now2.getMinutes());
     addToOfflineQueue(currentEmployee.id, currentEmployee.name, action, site, offlineTs);
 
     // Update local state optimistically
@@ -1509,15 +1510,15 @@ async function submitClock(action) {
       updateButtonStates(action, currentEmployee.lastSite);
     }
     showConfirmation(action, currentEmployee.name, timeStr, true,
-      '📵 Saved offline — will sync when connected');
+      'Saved offline - will sync when connected');
   } finally {
     isSubmitting = false;
   }
 }
 
-// ═══════════════════════════════════════════════════
+// --------------------------------------------------
 // CONFIRMATION
-// ═══════════════════════════════════════════════════
+// --------------------------------------------------
 function showConfirmation(action, name, time, success, errorMsg) {
   const overlay  = document.getElementById('confirm-overlay');
   const icon     = document.getElementById('confirm-icon');
@@ -1526,7 +1527,7 @@ function showConfirmation(action, name, time, success, errorMsg) {
   const detail   = document.getElementById('confirm-detail');
   const progress = document.getElementById('progress-fill');
   if (success) {
-    icon.className = 'confirm-icon success'; emoji.textContent = action === 'ClockIn' ? '✓' : '✕';
+    icon.className = 'confirm-icon success'; emoji.textContent = action === 'ClockIn' ? 'OK' : 'X';
     title.textContent = action === 'ClockIn' ? 'Clocked In!' : 'Clocked Out!';
     title.style.color = action === 'ClockIn' ? 'var(--green)' : 'var(--red)';
     detail.textContent = action === 'ClockIn' ? `Welcome, ${name}. Have a great shift!` : `Goodbye, ${name}. See you next time!`;
@@ -1542,9 +1543,9 @@ function showConfirmation(action, name, time, success, errorMsg) {
   setTimeout(() => { overlay.classList.remove('show'); progress.classList.remove('go'); resetStation(); }, 3200);
 }
 
-// ═══════════════════════════════════════════════════
+// --------------------------------------------------
 // RESET / HELPERS
-// ═══════════════════════════════════════════════════
+// --------------------------------------------------
 function updateButtonStates(lastAction, lastSite) {
   const btnIn      = document.getElementById('btn-clock-in');
   const btnOut     = document.getElementById('btn-clock-out');
@@ -1560,18 +1561,18 @@ function updateButtonStates(lastAction, lastSite) {
   if (!withinWindow) {
     btnIn.disabled  = true;
     btnOut.disabled = true;
-    banner.textContent = '⛔ Live entry not allowed outside 06:00 – 20:00';
+    banner.textContent = '[blocked] Live entry not allowed outside 06:00 - 20:00';
     banner.className   = 'status-banner clocked-out';
     return;
   }
 
   if (lastAction === 'ClockIn') {
-    // Employee is clocked in — only Clock Out allowed
+    // Employee is clocked in - only Clock Out allowed
     btnIn.disabled  = true;
     btnOut.disabled = false;
     btnIn.style.opacity  = '0.3';
     btnOut.style.opacity = '1';
-    banner.textContent = '● Currently Clocked In — tap Clock Out to leave';
+    banner.textContent = '* Currently Clocked In - tap Clock Out to leave';
     banner.className   = 'status-banner clocked-in';
     // Show current site, hide selector
     if (siteWrap) siteWrap.style.display = 'none';
@@ -1582,14 +1583,14 @@ function updateButtonStates(lastAction, lastSite) {
         : 'Site not recorded';
     }
   } else {
-    // Employee is not clocked in — only Clock In allowed
+    // Employee is not clocked in - only Clock In allowed
     btnIn.disabled  = false;
     btnOut.disabled = true;
     btnIn.style.opacity  = '1';
     btnOut.style.opacity = '0.3';
     const msg = lastAction === 'ClockOut'
-      ? '○ Clocked Out — tap Clock In to return'
-      : '○ Not Yet Clocked In Today';
+      ? 'o Clocked Out - tap Clock In to return'
+      : 'o Not Yet Clocked In Today';
     banner.textContent = msg;
     banner.className   = 'status-banner clocked-out';
     // Show site selector, hide display
@@ -1618,10 +1619,10 @@ function resetStation() {
 function showError() { document.getElementById('error-msg').classList.add('show'); }
 function hideError() { document.getElementById('error-msg').classList.remove('show'); }
 
-// ════════════════════════════════════════════════════════════════════════════
-// OFFLINE QUEUE — stores clock events when network is unavailable
+// --------------------------------------------------
+// OFFLINE QUEUE - stores clock events when network is unavailable
 // Auto-syncs when connection is restored
-// ════════════════════════════════════════════════════════════════════════════
+// --------------------------------------------------
 const OFFLINE_KEY = 'acetech_offline_queue';
 let isOnline      = navigator.onLine;
 let syncInProgress = false;
@@ -1677,9 +1678,8 @@ function showOfflineQueue() {
     return;
   }
   const lines = queue.map((e,i) =>
-    `${i+1}. ${e.empName} — ${e.action} at ${e.timestamp} (${e.site || 'no site'})`
-  ).join('
-');
+    `${i+1}. ${e.empName} - ${e.action} at ${e.timestamp} (${e.site || 'no site'})`
+  ).join('\n');
   alert(`Pending offline entries (${queue.length}):
 
 ${lines}
@@ -1708,14 +1708,14 @@ async function syncOfflineQueue() {
       const res  = await fetch(`${WEB_APP_URL}?${params.toString()}`);
       const data = await res.json();
       if (!data.success) {
-        // Keep in queue if server rejected (e.g. duplicate) — but mark as error
+        // Keep in queue if server rejected (e.g. duplicate) - but mark as error
         entry.error = data.error || 'Server rejected';
         remaining.push(entry);
       }
       // Small delay between syncs to avoid overwhelming the server
       await new Promise(r => setTimeout(r, 500));
     } catch(err) {
-      // Network still down — keep all remaining in queue
+      // Network still down - keep all remaining in queue
       remaining.push(entry);
       break;
     }
@@ -1730,14 +1730,14 @@ async function syncOfflineQueue() {
 window.addEventListener('online', () => {
   isOnline = true;
   updateOfflineBadge();
-  setStatus('🟢 Back online — syncing offline entries...');
+  setStatus('[green] Back online - syncing offline entries...');
   setTimeout(syncOfflineQueue, 1000);
 });
 
 window.addEventListener('offline', () => {
   isOnline = false;
   updateOfflineBadge();
-  setStatus('🔴 No internet connection — entries will be saved offline');
+  setStatus('[red] No internet connection - entries will be saved offline');
 });
 
 // Periodic sync attempt every 30 seconds
@@ -1745,9 +1745,9 @@ setInterval(() => {
   if (isOnline && getOfflineQueue().length > 0) syncOfflineQueue();
 }, 30000);
 
-// ════════════════════════════════════════════════════════════════════════════
+// --------------------------------------------------
 // SITE MANAGEMENT
-// ════════════════════════════════════════════════════════════════════════════
+// --------------------------------------------------
 let cachedSites = [];
 
 async function loadSiteDropdown() {
@@ -1773,7 +1773,7 @@ async function loadSiteDropdown() {
 }
 
 function populateSiteSelect(select, sites) {
-  select.innerHTML = '<option value="">— Select a site —</option>';
+  select.innerHTML = '<option value="">- Select a site -</option>';
   sites.forEach(s => {
     const opt = document.createElement('option');
     opt.value = s.code;
@@ -1790,7 +1790,7 @@ function getSiteNameFromCode(code) {
 async function loadSiteList() {
   const listDiv = document.getElementById('site-list');
   if (!listDiv) return;
-  listDiv.innerHTML = '<div style="color:var(--muted);text-align:center;padding:12px;">⏳ Loading...</div>';
+  listDiv.innerHTML = '<div style="color:var(--muted);text-align:center;padding:12px;">... Loading...</div>';
 
   try {
     const res  = await fetch(`${WEB_APP_URL}?action=getSites`);
@@ -1826,30 +1826,30 @@ async function addSite() {
 
   if (!code || !name) {
     result.style.color = 'var(--red)';
-    result.textContent = '⚠ Code and name are required.';
+    result.textContent = '[!] Code and name are required.';
     return;
   }
 
   result.style.color = 'var(--muted)';
-  result.textContent = '⏳ Adding...';
+  result.textContent = '... Adding...';
 
   try {
     const res  = await fetch(`${WEB_APP_URL}?action=addSite&code=${encodeURIComponent(code)}&name=${encodeURIComponent(name)}`);
     const data = await res.json();
     if (data.success) {
       result.style.color = 'var(--green)';
-      result.textContent = `✓ Added: ${name} (${code})`;
+      result.textContent = `OK Added: ${name} (${code})`;
       document.getElementById('site-code').value = '';
       document.getElementById('site-name').value = '';
       cachedSites = []; // Clear cache
       loadSiteList();
     } else {
       result.style.color = 'var(--red)';
-      result.textContent = '✗ ' + (data.error || 'Failed.');
+      result.textContent = '? ' + (data.error || 'Failed.');
     }
   } catch(err) {
     result.style.color = 'var(--red)';
-    result.textContent = '✗ Network error.';
+    result.textContent = '? Network error.';
   }
 }
 
@@ -1863,9 +1863,9 @@ async function removeSite(code, name) {
   } catch(err) { alert('Network error.'); }
 }
 
-// ════════════════════════════════════════════════════════════════════════════
+// --------------------------------------------------
 // EMPLOYEE MANAGEMENT
-// ════════════════════════════════════════════════════════════════════════════
+// --------------------------------------------------
 async function addEmployee() {
   const name     = document.getElementById('emp-name').value.trim();
   const nic      = document.getElementById('emp-nic').value.trim();
@@ -1877,12 +1877,12 @@ async function addEmployee() {
 
   if (!name || !nic || !position || !rate) {
     result.style.color = 'var(--red)';
-    result.textContent = '⚠ Name, NIC, Position and Rate are required.';
+    result.textContent = '[!] Name, NIC, Position and Rate are required.';
     return;
   }
 
   result.style.color = 'var(--muted)';
-  result.textContent = '⏳ Adding employee...';
+  result.textContent = '... Adding employee...';
 
   try {
     const params = new URLSearchParams({
@@ -1893,7 +1893,7 @@ async function addEmployee() {
 
     if (data.success) {
       result.style.color = 'var(--green)';
-      result.textContent = `✓ Added ${data.name} — ID: ${data.empId}`;
+      result.textContent = `OK Added ${data.name} - ID: ${data.empId}`;
       // Clear form
       ['emp-name','emp-nic','emp-rate','emp-bank'].forEach(id => {
         document.getElementById(id).value = '';
@@ -1903,17 +1903,17 @@ async function addEmployee() {
       loadEmployeeList();
     } else {
       result.style.color = 'var(--red)';
-      result.textContent = '✗ ' + (data.error || 'Failed to add employee.');
+      result.textContent = '? ' + (data.error || 'Failed to add employee.');
     }
   } catch(err) {
     result.style.color = 'var(--red)';
-    result.textContent = '✗ Network error: ' + err.message;
+    result.textContent = '? Network error: ' + err.message;
   }
 }
 
 async function loadEmployeeList() {
   const listDiv = document.getElementById('emp-list');
-  listDiv.innerHTML = '<div style="color:var(--muted);text-align:center;padding:12px;">⏳ Loading...</div>';
+  listDiv.innerHTML = '<div style="color:var(--muted);text-align:center;padding:12px;">... Loading...</div>';
 
   try {
     const res  = await fetch(`${WEB_APP_URL}?action=getEmployees`);
@@ -1928,7 +1928,7 @@ async function loadEmployeeList() {
       <div style="display:flex;align-items:center;justify-content:space-between;padding:8px 4px;border-bottom:1px solid var(--border);">
         <div>
           <div style="font-weight:600;color:var(--text);">${emp.name}</div>
-          <div style="color:var(--muted);font-size:11px;">${emp.id} · ${emp.position} · $${parseFloat(emp.rate).toFixed(2)}/hr · ${emp.payCycle || 'Fortnightly'}</div>
+          <div style="color:var(--muted);font-size:11px;">${emp.id} ? ${emp.position} ? $${parseFloat(emp.rate).toFixed(2)}/hr ? ${emp.payCycle || 'Fortnightly'}</div>
         </div>
         <button onclick="removeEmployee('${emp.id}','${emp.name.replace(/'/g,"\'")}')"
           style="padding:4px 10px;background:rgba(218,54,51,0.15);border:1px solid rgba(218,54,51,0.3);
@@ -1959,9 +1959,11 @@ async function removeEmployee(empId, empName) {
   }
 }
 
-// ── Initialization ─────────────────────────────────────────────────────────
+// ?? Initialization ?????????????????????????????????????????????????????????
 updateOfflineBadge();
 setTimeout(() => { if (isOnline) syncOfflineQueue(); }, 2000);
+
+// Page initialized via window.addEventListener('load')
 
 </script>
 <!-- Offline queue badge -->
