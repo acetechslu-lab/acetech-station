@@ -590,9 +590,30 @@
 
       <div class="tab-panel active" id="tab-qr">
         <div class="scanner-wrap">
-          <div id="qr-reader"></div>
+          <!-- Bold clock display shown when camera is off -->
+          <div id="clock-display-panel" style="
+            display:flex;flex-direction:column;align-items:center;justify-content:center;
+            height:100%;min-height:180px;padding:20px;
+            background:linear-gradient(135deg,#0d1117 0%,#1a2332 100%);
+          ">
+            <div id="clock-big" style="
+              font-family:'Barlow Condensed',sans-serif;font-weight:800;
+              font-size:4.5rem;color:#C9A227;letter-spacing:0.05em;line-height:1;
+              text-shadow:0 0 30px rgba(201,162,39,0.4);
+            ">--:--:--</div>
+            <div id="date-big" style="
+              font-family:'Barlow Condensed',sans-serif;font-weight:600;
+              font-size:1.2rem;color:#e6edf3;letter-spacing:0.15em;
+              text-transform:uppercase;margin-top:8px;opacity:0.9;
+            ">---</div>
+            <div style="margin-top:16px;opacity:0.4;font-size:11px;color:#8b949e;letter-spacing:0.1em;text-transform:uppercase;">
+              ACEtech Attendance Station
+            </div>
+          </div>
+          <!-- Camera view (hidden until started) -->
+          <div id="qr-reader" style="display:none;"></div>
         </div>
-        <div class="scanner-status" id="scanner-status">Camera not started</div>
+        <div class="scanner-status" id="scanner-status" style="display:none;"></div>
         <button class="btn-start-scan" id="btn-start" onclick="startScanner()">▶ Start Camera</button>
         <button class="btn-stop-scan" id="btn-stop" style="display:none" onclick="stopScanner()">■ Stop Camera</button>
       </div>
@@ -1102,6 +1123,16 @@ function changeAdminPass() {
 // --------------------------------------------------
 function updateClock() {
   const now = new Date();
+  // Update big clock display
+  const padC = n => String(n).padStart(2,'0');
+  const bigClock = document.getElementById('clock-big');
+  const bigDate  = document.getElementById('date-big');
+  if (bigClock) bigClock.textContent = padC(now.getHours())+':'+padC(now.getMinutes())+':'+padC(now.getSeconds());
+  if (bigDate) {
+    const days   = ['Sunday','Monday','Tuesday','Wednesday','Thursday','Friday','Saturday'];
+    const months = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
+    bigDate.textContent = days[now.getDay()]+', '+months[now.getMonth()]+' '+now.getDate()+', '+now.getFullYear();
+  }
   const days = ['Sunday','Monday','Tuesday','Wednesday','Thursday','Friday','Saturday'];
   const months = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
   const pad = n => String(n).padStart(2,'0');
@@ -1264,6 +1295,12 @@ let html5QrCode = null;
 let scannerRunning = false;
 
 function startScanner() {
+  // Hide clock panel, show camera
+  const clockPanel = document.getElementById('clock-display-panel');
+  const qrReader   = document.getElementById('qr-reader');
+  if (clockPanel) clockPanel.style.display = 'none';
+  if (qrReader)   qrReader.style.display = 'block';
+
   // Show fullscreen overlay
   document.getElementById('scanner-fullscreen').classList.add('active');
   document.getElementById('scanner-status').textContent = 'Starting camera...';
@@ -1322,6 +1359,11 @@ function stopScanner() {
       document.getElementById('scanner-fullscreen').classList.remove('active');
       document.getElementById('btn-start').style.display = 'block';
       document.getElementById('btn-stop').style.display = 'none';
+      // Show clock panel again
+      const clockPanel = document.getElementById('clock-display-panel');
+      const qrReader   = document.getElementById('qr-reader');
+      if (clockPanel) clockPanel.style.display = 'flex';
+      if (qrReader)   qrReader.style.display = 'none';
     }).catch(() => {});
   }
 }
