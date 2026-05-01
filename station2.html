@@ -88,19 +88,19 @@
 
   /* ── MAIN APP (same as before) ── */
   .wrapper{position:relative;z-index:1;height:100vh;display:flex;flex-direction:column;}
-  header{display:flex;align-items:center;justify-content:space-between;padding:10px 12px;border-bottom:1px solid var(--border);background:rgba(17,24,39,0.95);backdrop-filter:blur(8px);flex-shrink:0;}
-  .logo-block{display:flex;align-items:center;gap:8px;}
+  header{display:flex;align-items:center;justify-content:space-between;padding:10px 14px;border-bottom:1px solid var(--border);background:rgba(17,24,39,0.95);backdrop-filter:blur(8px);flex-shrink:0;gap:8px;}
+  .logo-block{display:flex;align-items:center;gap:8px;flex:1;min-width:0;}
   .logo-icon{width:40px;height:40px;background:var(--gold);border-radius:8px;display:flex;align-items:center;justify-content:center;font-family:'Barlow Condensed',sans-serif;font-weight:800;font-size:16px;color:#0a0f1a;}
   .logo-text{font-family:'Barlow Condensed',sans-serif;font-weight:700;font-size:20px;letter-spacing:1px;color:var(--white);}
   .logo-text span{color:var(--gold);}
-  .header-right{display:flex;align-items:center;gap:16px;}
+  .header-right{display:flex;align-items:center;gap:8px;flex-shrink:0;}
   #clock-time{font-family:'Barlow Condensed',sans-serif;font-size:26px;font-weight:600;color:var(--gold);letter-spacing:2px;line-height:1;}
   #clock-date{font-size:10px;color:var(--muted);letter-spacing:1px;text-transform:uppercase;margin-top:2px;}
   .status-dot{width:10px;height:10px;background:var(--green);border-radius:50%;box-shadow:0 0 8px var(--green);animation:pulse-dot 2s infinite;}
   @keyframes pulse-dot{0%,100%{opacity:1}50%{opacity:0.4}}
-  .lock-btn{background:transparent;border:1px solid var(--border);color:var(--muted);border-radius:8px;padding:5px 8px;font-size:11px;cursor:pointer;transition:all 0.2s;font-family:'Barlow',sans-serif;}
+  .lock-btn{background:transparent;border:1px solid var(--border);color:var(--muted);border-radius:8px;padding:6px 12px;font-size:12px;font-weight:600;cursor:pointer;transition:all 0.2s;font-family:'Barlow',sans-serif;}
   .lock-btn:hover{border-color:var(--orange);color:var(--orange);}
-  .admin-btn{background:transparent;border:1px solid var(--border);color:var(--muted);border-radius:8px;padding:5px 8px;font-size:11px;cursor:pointer;transition:all 0.2s;font-family:'Barlow',sans-serif;}
+  .admin-btn{background:transparent;border:1px solid var(--border);color:var(--muted);border-radius:8px;padding:6px 12px;font-size:12px;font-weight:600;cursor:pointer;transition:all 0.2s;font-family:'Barlow',sans-serif;}
   .admin-btn:hover{border-color:var(--gold);color:var(--gold);}
 
   main{flex:1;display:grid;grid-template-columns:1fr 1fr;overflow:hidden;}
@@ -569,13 +569,9 @@
       </div>
     </div>
     <div class="header-right">
-      <div>
-        <div id="clock-time">--:--:--</div>
-        <div id="clock-date">Loading...</div>
-      </div>
       <div class="status-dot"></div>
-      <button class="admin-btn" onclick="promptAdmin()">⚙ Admin</button>
-      <button class="lock-btn" onclick="lockStation()">🔒 Lock</button>
+      <button class="admin-btn" onclick="promptAdmin()">&#9881; Admin</button>
+      <button class="lock-btn" onclick="lockStation()">&#128274; Lock</button>
     </div>
   </header>
 
