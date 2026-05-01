@@ -1341,7 +1341,7 @@ function lookupFromName() { const id = document.getElementById('name-id-display'
 
 async function lookupEmployee(empId) {
   hideError();
-  // Clean the ID - strip any URL prefix if present
+  // Clean the ID
   let cleanId = empId.trim();
   try {
     const url = new URL(empId);
@@ -1350,21 +1350,27 @@ async function lookupEmployee(empId) {
   } catch(e) { /* raw ID */ }
   cleanId = cleanId.toUpperCase();
 
+  // Step 1: Show card INSTANTLY from local cache (no network wait)
   const local = EMPLOYEES.find(e => e.id.toUpperCase() === cleanId);
-  if (WEB_APP_URL === "YOUR_GOOGLE_APPS_SCRIPT_WEB_APP_URL_HERE") {
-    local ? showEmployeeCard({...local, lastAction: null}) : showError();
-    return;
+  if (local) {
+    // Show immediately with unknown status — buttons disabled until server responds
+    showEmployeeCard({ ...local, found: true, lastAction: null, lastSite: null, withinWindow: true, loading: true });
+  } else if (WEB_APP_URL === "YOUR_GOOGLE_APPS_SCRIPT_WEB_APP_URL_HERE") {
+    showError(); return;
   }
+
+  // Step 2: Fetch clock status from server in background
   try {
     const res  = await fetch(`${WEB_APP_URL}?action=lookup&id=${encodeURIComponent(cleanId)}`);
     const data = await res.json();
     if (data.found) {
-      showEmployeeCard(data);
-    } else {
-      showError();
+      showEmployeeCard(data); // Update with full status
+    } else if (!local) {
+      showError(); // Not in cache and not on server
     }
   } catch {
-    local ? showEmployeeCard({...local, lastAction: null}) : showError();
+    // Network error — use cache with unknown status
+    if (!local) showError();
   }
 }
 
@@ -1379,6 +1385,22 @@ function showEmployeeCard(emp) {
 
   // Store lastSite on currentEmployee
   if (currentEmployee) currentEmployee.lastSite = emp.lastSite || null;
+
+  // If still loading status from server, show both buttons dimmed with a spinner
+  if (emp.loading) {
+    const btnIn  = document.getElementById('btn-clock-in');
+    const btnOut = document.getElementById('btn-clock-out');
+    const banner = document.getElementById('status-banner');
+    if (btnIn)  { btnIn.disabled  = true; btnIn.style.opacity  = '0.4'; }
+    if (btnOut) { btnOut.disabled = true; btnOut.style.opacity = '0.4'; }
+    if (banner) { banner.textContent = 'Checking status...'; banner.className = 'status-banner clocked-out'; }
+    const siteWrap = document.getElementById('site-select-wrap');
+    const siteDisp = document.getElementById('site-display');
+    if (siteWrap) siteWrap.style.display = 'none';
+    if (siteDisp) siteDisp.style.display = 'none';
+    return;
+  }
+
   // Use centralised button state function
   updateButtonStates(emp.lastAction || null, emp.lastSite || null);
 
