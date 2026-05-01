@@ -611,12 +611,12 @@
               ACEtech Attendance Station
             </div>
           </div>
-          <!-- Camera view (hidden until started) -->
-          <div id="qr-reader" style="display:none;"></div>
         </div>
+        <!-- qr-reader kept outside clock panel so library can access it -->
+        <div id="qr-reader" style="display:none;width:100%;"></div>
         <div class="scanner-status" id="scanner-status" style="display:none;"></div>
-        <button class="btn-start-scan" id="btn-start" onclick="startScanner()">▶ Start Camera</button>
-        <button class="btn-stop-scan" id="btn-stop" style="display:none" onclick="stopScanner()">■ Stop Camera</button>
+        <button class="btn-start-scan" id="btn-start" onclick="startScanner()">&#9654; Start Camera</button>
+        <button class="btn-stop-scan" id="btn-stop" style="display:none" onclick="stopScanner()">&#9632; Stop Camera</button>
       </div>
 
       <div class="tab-panel" id="tab-manual">
@@ -1137,8 +1137,10 @@ function updateClock() {
   const days = ['Sunday','Monday','Tuesday','Wednesday','Thursday','Friday','Saturday'];
   const months = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
   const pad = n => String(n).padStart(2,'0');
-  document.getElementById('clock-time').textContent = `${pad(now.getHours())}:${pad(now.getMinutes())}:${pad(now.getSeconds())}`;
-  document.getElementById('clock-date').textContent = `${days[now.getDay()]}, ${months[now.getMonth()]} ${now.getDate()}, ${now.getFullYear()}`;
+  const ctEl = document.getElementById('clock-time');
+  if (ctEl) ctEl.textContent = `${pad(now.getHours())}:${pad(now.getMinutes())}:${pad(now.getSeconds())}`;
+  const cdEl = document.getElementById('clock-date');
+  if (cdEl) cdEl.textContent = `${days[now.getDay()]}, ${months[now.getMonth()]} ${now.getDate()}, ${now.getFullYear()}`;
 }
 setInterval(updateClock, 1000);
 updateClock();
@@ -1296,12 +1298,6 @@ let html5QrCode = null;
 let scannerRunning = false;
 
 function startScanner() {
-  // Hide clock panel, show camera
-  const clockPanel = document.getElementById('clock-display-panel');
-  const qrReader   = document.getElementById('qr-reader');
-  if (clockPanel) clockPanel.style.display = 'none';
-  if (qrReader)   qrReader.style.display = 'block';
-
   // Show fullscreen overlay
   document.getElementById('scanner-fullscreen').classList.add('active');
   document.getElementById('scanner-status').textContent = 'Starting camera...';
@@ -1360,11 +1356,7 @@ function stopScanner() {
       document.getElementById('scanner-fullscreen').classList.remove('active');
       document.getElementById('btn-start').style.display = 'block';
       document.getElementById('btn-stop').style.display = 'none';
-      // Show clock panel again
-      const clockPanel = document.getElementById('clock-display-panel');
-      const qrReader   = document.getElementById('qr-reader');
-      if (clockPanel) clockPanel.style.display = 'flex';
-      if (qrReader)   qrReader.style.display = 'none';
+      // Clock panel stays visible (it's always shown when camera not active)
     }).catch(() => {});
   }
 }
