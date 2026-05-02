@@ -771,6 +771,7 @@
 
   <footer>
     <div class="footer-note" style="color:#8b949e;font-size:12px;font-weight:500;">For assistance, contact your site supervisor</div>
+<div id="cache-status" style="font-size:10px;color:#444;"></div>
     <div class="footer-brand">ACEtech Engineering & Construction</div>
   </footer>
 </div>
@@ -835,6 +836,9 @@ async function loadEmployeesFromSheet() {
   } catch (err) {
     console.log('Could not refresh employees from server - using cached list');
   }
+  // Show cache status in footer
+  const cs = document.getElementById('cache-status');
+  if (cs) cs.textContent = 'Employees: ' + EMPLOYEES.length + ' | Cache: ' + (localStorage.getItem(EMPLOYEES_CACHE_KEY) ? 'YES' : 'NO');
 }
 
 // --------------------------------------------------
