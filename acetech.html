@@ -1816,16 +1816,16 @@ function updateOfflineBadge() {
 
   if (!badge) return;
 
-  if (!isOnline) {
-    dot.className = 'offline-indicator';
+  if (!navigator.onLine) {
+    dot.className = 'net-dot';
     badge.classList.add('visible');
-    text.textContent = queue.length > 0 ? queue.length + ' pending sync' : 'Offline mode';
+    text.textContent = queue.length > 0 ? queue.length + ' pending sync' : 'Offline';
   } else if (queue.length > 0) {
-    dot.className = 'offline-indicator';
+    dot.className = 'net-dot';
     badge.classList.add('visible');
     text.textContent = queue.length + ' syncing...';
   } else {
-    dot.className = 'offline-indicator online-indicator';
+    dot.className = 'net-dot online';
     badge.classList.remove('visible');
   }
 }
