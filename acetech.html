@@ -1780,24 +1780,19 @@ function getLastActionLocal(empId) {
 }
 
 function addToOfflineQueue(empId, empName, action, site, timestamp) {
-  const queue = getOfflineQueue();
+  const queue    = getOfflineQueue();
   const todayStr = new Date().toISOString().slice(0,10);
 
-  // Check last known action from localStorage
-  const lastKnown = getLastActionLocal(empId);
-  if (action === 'ClockIn' && lastKnown && lastKnown.action === 'ClockIn') {
-    console.warn('Duplicate offline ClockIn blocked for', empId);
-    return false;
-  }
-  if (action === 'ClockOut' && (!lastKnown || lastKnown.action !== 'ClockIn')) {
-    console.warn('No active ClockIn for ClockOut', empId);
-    return false;
-  }
+  // Check last known action — from localStorage OR from queue
+  const lastKnown   = getLastActionLocal(empId);
+  const todayQ      = queue.filter(e => e.empId === empId && e.timestamp && e.timestamp.startsWith(todayStr));
+  const lastQueued  = todayQ.length > 0 ? todayQ[todayQ.length-1] : null;
+  // Use queue entry as priority since it's most recent
+  const effectiveLast = lastQueued ? lastQueued.action : (lastKnown ? lastKnown.action : null);
 
-  // Also check offline queue for today
-  const todayEntries = queue.filter(e => e.empId === empId && e.timestamp && e.timestamp.startsWith(todayStr));
-  const lastQueued = todayEntries.length > 0 ? todayEntries[todayEntries.length-1] : null;
-  if (action === 'ClockIn' && lastQueued && lastQueued.action === 'ClockIn') {
+  // Only block duplicate ClockIn
+  if (action === 'ClockIn' && effectiveLast === 'ClockIn') {
+    console.warn('Duplicate offline ClockIn blocked for', empId);
     return false;
   }
 
@@ -1809,14 +1804,14 @@ function addToOfflineQueue(empId, empName, action, site, timestamp) {
 }
 
 function updateOfflineBadge() {
-  const queue  = getOfflineQueue();
-  const badge  = document.getElementById('offline-badge');
-  const text   = document.getElementById('offline-badge-text');
-  const dot    = document.getElementById('net-indicator');
-
+  const queue   = getOfflineQueue();
+  const badge   = document.getElementById('offline-badge');
+  const text    = document.getElementById('offline-badge-text');
+  const dot     = document.getElementById('net-indicator');
   if (!badge) return;
 
-  if (!navigator.onLine) {
+  const online = navigator.onLine;
+  if (!online) {
     dot.className = 'net-dot';
     badge.classList.add('visible');
     text.textContent = queue.length > 0 ? queue.length + ' pending sync' : 'Offline';
@@ -1917,8 +1912,9 @@ window.addEventListener('offline', () => {
 
 // Periodic sync attempt every 30 seconds
 setInterval(() => {
-  if (isOnline && getOfflineQueue().length > 0) syncOfflineQueue();
-}, 30000);
+  if (navigator.onLine && getOfflineQueue().length > 0) syncOfflineQueue();
+  updateOfflineBadge(); // Keep badge current
+}, 5000);
 
 // --------------------------------------------------
 // SITE MANAGEMENT
