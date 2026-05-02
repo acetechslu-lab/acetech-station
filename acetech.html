@@ -1441,29 +1441,25 @@ async function lookupEmployee(empId) {
     return;
   }
 
-  // Online — show card from cache immediately with loading state
+  // Show card immediately from cache — no loading state
   if (local) {
-    showEmployeeCard({ ...local, found: true, lastAction: null, lastSite: null, withinWindow: true, loading: true });
+    showEmployeeCard({ ...local, found: true, lastAction: null, lastSite: null, withinWindow: true, loading: false });
   } else {
-    // Not in cache yet — show generic card
-    showEmployeeCard({ id: cleanId, name: 'Loading...', position: '', found: true, lastAction: null, lastSite: null, withinWindow: true, loading: true });
+    showEmployeeCard({ id: cleanId, name: cleanId, position: 'Employee', found: true, lastAction: null, lastSite: null, withinWindow: true, loading: false });
   }
 
+  // Fetch status from server in background with 5s timeout
   try {
-    const res  = await fetch(`${WEB_APP_URL}?action=lookup&id=${encodeURIComponent(cleanId)}`);
+    const controller = new AbortController();
+    const tid = setTimeout(() => controller.abort(), 5000);
+    const res  = await fetch(`${WEB_APP_URL}?action=lookup&id=${encodeURIComponent(cleanId)}`, { signal: controller.signal });
+    clearTimeout(tid);
     const data = await res.json();
     if (data.found) {
       showEmployeeCard(data);
-    } else if (!local) {
-      showError();
     }
   } catch {
-    // Network error during online attempt — fall back to cache
-    if (local) {
-      showEmployeeCard({ ...local, found: true, lastAction: null, lastSite: null, withinWindow: true, loading: false });
-    } else {
-      showError();
-    }
+    // Timeout or network error — card already showing from cache, do nothing
   }
 }
 
