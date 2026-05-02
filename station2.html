@@ -890,8 +890,13 @@ function showApp() {
 // --------------------------------------------------
 window.addEventListener('load', () => {
   document.getElementById('blocked-device-code').textContent = DEVICE_FP;
-  // Load employees from sheet in background
+  // Load employees and sites from sheet in background
   loadEmployeesFromSheet();
+  // Pre-cache sites so dropdown is instant
+  fetch(`${WEB_APP_URL}?action=getSites`)
+    .then(r => r.json())
+    .then(d => { if (d.success && d.sites) cachedSites = d.sites; })
+    .catch(() => { cachedSites = DEFAULT_SITE_LIST; });
   if (isDeviceApproved()) {
     showScreen('screen-pin');
   } else {
@@ -1840,6 +1845,21 @@ setInterval(() => {
 // --------------------------------------------------
 let cachedSites = [];
 
+// Default sites for offline fallback
+const DEFAULT_SITE_LIST = [
+  {code:'ISL', name:'Invest SLU'},
+  {code:'SV',  name:'Sutton Villas'},
+  {code:'BR',  name:'Beepat Res.'},
+  {code:'JS',  name:'Javed Samuel'},
+  {code:'MJ',  name:'Martha Jankie'},
+  {code:'TP',  name:'Tiles Plus'},
+  {code:'TL',  name:'Trevor Lawrence'},
+  {code:'AC',  name:'ACEtech'},
+  {code:'VA',  name:'Vaughn Aimable'},
+  {code:'SJ',  name:'S. Joseph'},
+  {code:'OFF', name:'Office'}
+];
+
 async function loadSiteDropdown() {
   const select = document.getElementById('site-select');
   if (!select) return;
@@ -1850,15 +1870,20 @@ async function loadSiteDropdown() {
     return;
   }
 
+  // Use default list immediately so dropdown is never empty
+  populateSiteSelect(select, DEFAULT_SITE_LIST);
+
+  // Then try to fetch latest from server
   try {
     const res  = await fetch(`${WEB_APP_URL}?action=getSites`);
     const data = await res.json();
-    if (data.success && data.sites) {
+    if (data.success && data.sites && data.sites.length > 0) {
       cachedSites = data.sites;
       populateSiteSelect(select, cachedSites);
     }
   } catch(err) {
-    console.error('Failed to load sites:', err);
+    // Offline or error - default list already shown
+    cachedSites = DEFAULT_SITE_LIST;
   }
 }
 
