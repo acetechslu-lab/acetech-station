@@ -743,8 +743,8 @@
       <div class="emp-card" id="emp-card">
         <div class="emp-avatar" id="emp-avatar">--</div>
         <div style="text-align:center">
-          <div class="emp-name" id="emp-name">-</div>
-          <div class="emp-meta" id="emp-position">-</div>
+          <div class="emp-name" id="emp-name-display">-</div>
+          <div class="emp-meta" id="emp-pos-display">-</div>
           <div class="emp-id-badge" id="emp-id-display">-</div>
         </div>
         <div class="status-banner" id="status-banner">-</div>
@@ -1478,10 +1478,10 @@ function showEmployeeCard(emp) {
   currentEmployee = emp;
   const names    = (emp.name || '').split(' ');
   const initials = ((names[0]?.[0] || '') + (names[1]?.[0] || '')).toUpperCase();
-  document.getElementById('emp-avatar').textContent     = initials || '?';
-  document.getElementById('emp-name').textContent       = emp.name     || '-';
-  document.getElementById('emp-position').textContent   = emp.position || '-';
-  document.getElementById('emp-id-display').textContent = emp.id       || '-';
+  document.getElementById('emp-avatar').textContent        = initials || '?';
+  document.getElementById('emp-name-display').textContent  = emp.name     || '-';
+  document.getElementById('emp-pos-display').textContent   = emp.position || '-';
+  document.getElementById('emp-id-display').textContent    = emp.id       || '-';
 
   // Store lastSite on currentEmployee
   if (currentEmployee) currentEmployee.lastSite = emp.lastSite || null;
