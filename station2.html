@@ -1470,12 +1470,8 @@ function showEmployeeCard(emp) {
     const siteDisp = document.getElementById('site-display');
     if (siteWrap) siteWrap.style.display = 'none';
     if (siteDisp) siteDisp.style.display = 'none';
-    // Safety fallback — enable Clock In after 5 seconds if server never responds
-    setTimeout(() => {
-      if (currentEmployee && currentEmployee.id === emp.id) {
-        updateButtonStates(null, null);
-      }
-    }, 5000);
+    // No timeout needed - server will respond and update buttons
+    // If server fails, catch block in lookupEmployee handles it
     return;
   }
 
