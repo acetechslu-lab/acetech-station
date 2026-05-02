@@ -1582,7 +1582,12 @@ async function submitClock(action) {
       site:   site
     });
 
-    const res  = await fetch(`${WEB_APP_URL}?${params.toString()}`);
+    // 8 second timeout — if server doesn't respond, go offline
+    const controller = new AbortController();
+    const timeoutId  = setTimeout(() => controller.abort(), 8000);
+
+    const res  = await fetch(`${WEB_APP_URL}?${params.toString()}`, { signal: controller.signal });
+    clearTimeout(timeoutId);
     dbg('Step 6: got response, status=' + res.status);
     const data = await res.json();
     dbg('Step 7: parsed JSON, success=' + data.success);
