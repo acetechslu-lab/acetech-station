@@ -1649,6 +1649,14 @@ function updateButtonStates(lastAction, lastSite) {
   const siteDisp   = document.getElementById('site-display');
   const siteDispTx = document.getElementById('site-display-text');
 
+  if (!btnIn || !btnOut) return;
+
+  // Always reset opacity first
+  btnIn.style.opacity  = '1';
+  btnOut.style.opacity = '1';
+  btnIn.disabled  = false;
+  btnOut.disabled = false;
+
   const now  = new Date();
   const mins = now.getHours() * 60 + now.getMinutes();
   const withinWindow = mins >= 360 && mins < 1200;
@@ -1656,44 +1664,36 @@ function updateButtonStates(lastAction, lastSite) {
   if (!withinWindow) {
     btnIn.disabled  = true;
     btnOut.disabled = true;
-    banner.textContent = '[blocked] Live entry not allowed outside 06:00 - 20:00';
-    banner.className   = 'status-banner clocked-out';
+    btnIn.style.opacity  = '0.3';
+    btnOut.style.opacity = '0.3';
+    if (banner) { banner.textContent = 'Outside hours - use Manual Entry'; banner.className = 'status-banner clocked-out'; }
+    if (siteWrap) siteWrap.style.display = 'none';
+    if (siteDisp) siteDisp.style.display = 'none';
     return;
   }
 
   if (lastAction === 'ClockIn') {
     // Employee is clocked in - only Clock Out allowed
-    btnIn.disabled  = true;
-    btnOut.disabled = false;
+    btnIn.disabled       = true;
     btnIn.style.opacity  = '0.3';
+    btnOut.disabled      = false;
     btnOut.style.opacity = '1';
-    banner.textContent = '* Currently Clocked In - tap Clock Out to leave';
-    banner.className   = 'status-banner clocked-in';
-    // Show current site, hide selector
+    if (banner) { banner.textContent = '● Currently Clocked In - tap Clock Out to leave'; banner.className = 'status-banner clocked-in'; }
     if (siteWrap) siteWrap.style.display = 'none';
     if (siteDisp) {
       siteDisp.style.display = 'block';
-      if (siteDispTx) siteDispTx.textContent = lastSite
-        ? getSiteNameFromCode(lastSite) + ' (' + lastSite + ')'
-        : 'Site not recorded';
+      if (siteDispTx) siteDispTx.textContent = lastSite ? getSiteNameFromCode(lastSite) + ' (' + lastSite + ')' : 'Site not recorded';
     }
   } else {
-    // Employee is not clocked in - only Clock In allowed
-    btnIn.disabled  = false;
-    btnOut.disabled = true;
+    // Employee not clocked in - only Clock In allowed
+    btnIn.disabled       = false;
     btnIn.style.opacity  = '1';
+    btnOut.disabled      = true;
     btnOut.style.opacity = '0.3';
-    const msg = lastAction === 'ClockOut'
-      ? 'o Clocked Out - tap Clock In to return'
-      : 'o Not Yet Clocked In Today';
-    banner.textContent = msg;
-    banner.className   = 'status-banner clocked-out';
-    // Show site selector, hide display
+    const msg = lastAction === 'ClockOut' ? '○ Clocked Out - tap Clock In to return' : '○ Not Yet Clocked In Today';
+    if (banner) { banner.textContent = msg; banner.className = 'status-banner clocked-out'; }
     if (siteDisp) siteDisp.style.display = 'none';
-    if (siteWrap) {
-      siteWrap.style.display = 'block';
-      loadSiteDropdown();
-    }
+    if (siteWrap) { siteWrap.style.display = 'block'; loadSiteDropdown(); }
   }
 }
 
