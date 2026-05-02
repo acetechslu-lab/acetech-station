@@ -1447,7 +1447,7 @@ function showEmployeeCard(emp) {
   // Store lastSite on currentEmployee
   if (currentEmployee) currentEmployee.lastSite = emp.lastSite || null;
 
-  // If still loading status from server, show both buttons dimmed with a spinner
+  // If still loading — show dimmed buttons briefly, but set a timeout fallback
   if (emp.loading) {
     const btnIn  = document.getElementById('btn-clock-in');
     const btnOut = document.getElementById('btn-clock-out');
@@ -1459,6 +1459,12 @@ function showEmployeeCard(emp) {
     const siteDisp = document.getElementById('site-display');
     if (siteWrap) siteWrap.style.display = 'none';
     if (siteDisp) siteDisp.style.display = 'none';
+    // Safety timeout — if server never responds, enable buttons after 4 seconds
+    setTimeout(() => {
+      if (currentEmployee && currentEmployee.id === emp.id) {
+        updateButtonStates(null, null); // Default to ClockIn available
+      }
+    }, 4000);
     return;
   }
 
@@ -1523,7 +1529,7 @@ async function submitClock(action) {
   const timeStr = pad(now.getHours())+':'+pad(now.getMinutes())+':'+pad(now.getSeconds());
 
   // Entry window check: 6:00 AM - 8:00 PM (skip when offline)
-  if (!navigator.onLine === false && (mins < 360 || mins >= 1200)) {
+  if (navigator.onLine && (mins < 360 || mins >= 1200)) {
     isSubmitting = false;
     showConfirmation(action, currentEmployee.name, timeStr, false,
       'Live entries only allowed 06:00 - 20:00. Use the Manual Entry tab.');
