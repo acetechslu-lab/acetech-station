@@ -2131,6 +2131,14 @@ setTimeout(() => { if (isOnline) syncOfflineQueue(); }, 2000);
   <div id="qr-reader-fs"></div>
   <div class="scanner-fs-hint">Hold QR card steady in the frame</div>
 </div>
-<!-- Service worker disabled for iOS compatibility -->
+<!-- Unregister any old service workers -->
+<script>
+if ('serviceWorker' in navigator) {
+  navigator.serviceWorker.getRegistrations().then(regs => {
+    regs.forEach(reg => reg.unregister());
+  });
+  caches.keys().then(keys => keys.forEach(k => caches.delete(k)));
+}
+</script>
 </body>
 </html>
