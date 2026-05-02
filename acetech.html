@@ -523,11 +523,11 @@
     <div style="background:rgba(255,255,255,0.04);border:1px solid var(--border);border-radius:10px;padding:16px;margin-bottom:12px;">
       <div style="font-size:11px;font-weight:600;color:var(--muted);margin-bottom:10px;text-transform:uppercase;letter-spacing:0.1em;">Add New Employee</div>
       <div class="admin-row">
-        <input type="text" class="admin-input" id="emp-name" placeholder="Full Name (e.g. Smith, John)">
+        <input type="text" class="admin-input" id="new-emp-name" placeholder="Full Name (e.g. Smith, John)">
         <input type="text" class="admin-input" id="emp-nic"  placeholder="NIC Number">
       </div>
       <div class="admin-row">
-        <select class="admin-input" id="emp-position">
+        <select class="admin-input" id="new-emp-position">
           <option value="">Select Position...</option>
           <option>Foreman</option><option>Mason</option><option>Carpenter</option>
           <option>Helper</option><option>Labourer</option><option>Driver</option>
@@ -1421,42 +1421,27 @@ async function lookupEmployee(empId) {
 
   // If offline — use cache immediately with full functionality
   if (!navigator.onLine) {
+    // Get last known action from localStorage (set after any online or offline event)
+    const lastKnown = getLastActionLocal(cleanId);
+    const lastAction = lastKnown ? lastKnown.action : null;
+    const lastSite   = lastKnown ? lastKnown.site   : null;
+
     if (local) {
-      // Check offline queue for today's last action
-      const queue = getOfflineQueue();
-      const todayStr = new Date().toISOString().slice(0,10);
-      const todayEntries = queue.filter(e =>
-        e.empId === cleanId && e.timestamp && e.timestamp.startsWith(todayStr)
-      );
-      let lastAction = null;
-      let lastSite   = null;
-      if (todayEntries.length > 0) {
-        const last = todayEntries[todayEntries.length - 1];
-        lastAction = last.action;
-        lastSite   = last.site || null;
-      }
-      showEmployeeCard({
-        ...local, found: true,
-        lastAction, lastSite,
-        withinWindow: true, loading: false
-      });
+      showEmployeeCard({ ...local, found: true, lastAction, lastSite, withinWindow: true, loading: false });
     } else {
-      // Employee not in local cache — show generic card with the ID
-      // They can still clock in, name will sync when online
-      showEmployeeCard({
-        id: cleanId, name: cleanId, position: 'Employee',
-        found: true, lastAction: null, lastSite: null,
-        withinWindow: true, loading: false
-      });
+      showEmployeeCard({ id: cleanId, name: cleanId, position: 'Employee', found: true, lastAction, lastSite, withinWindow: true, loading: false });
     }
     return;
   }
 
-  // Show card immediately from cache — no loading state
+  // Show card immediately — use localStorage for last action while server responds
+  const lastKnown2 = getLastActionLocal(cleanId);
+  const initAction = lastKnown2 ? lastKnown2.action : null;
+  const initSite   = lastKnown2 ? lastKnown2.site   : null;
   if (local) {
-    showEmployeeCard({ ...local, found: true, lastAction: null, lastSite: null, withinWindow: true, loading: false });
+    showEmployeeCard({ ...local, found: true, lastAction: initAction, lastSite: initSite, withinWindow: true, loading: false });
   } else {
-    showEmployeeCard({ id: cleanId, name: cleanId, position: 'Employee', found: true, lastAction: null, lastSite: null, withinWindow: true, loading: false });
+    showEmployeeCard({ id: cleanId, name: cleanId, position: 'Employee', found: true, lastAction: initAction, lastSite: initSite, withinWindow: true, loading: false });
   }
 
   // Fetch status from server in background with 5s timeout
@@ -1467,6 +1452,8 @@ async function lookupEmployee(empId) {
     clearTimeout(tid);
     const data = await res.json();
     if (data.found) {
+      // Update localStorage with fresh server data
+      if (data.lastAction) saveLastAction(cleanId, data.lastAction, data.lastSite || '');
       showEmployeeCard(data);
     }
   } catch {
@@ -1631,6 +1618,7 @@ async function submitClock(action) {
     if (data.success) {
       currentEmployee.lastAction = action;
       if (action === 'ClockIn') currentEmployee.lastSite = site;
+      saveLastAction(currentEmployee.id, action, site); // Persist for offline use
       updateButtonStates(action, currentEmployee.lastSite);
       showConfirmation(action, currentEmployee.name, data.time || timeStr, true);
     } else {
@@ -1772,22 +1760,50 @@ function saveOfflineQueue(queue) {
   localStorage.setItem(OFFLINE_KEY, JSON.stringify(queue));
 }
 
+// Store last action per employee so offline scans know their status
+function saveLastAction(empId, action, site) {
+  try {
+    const key  = 'acetech_last_' + empId;
+    const today = new Date().toISOString().slice(0,10);
+    localStorage.setItem(key, JSON.stringify({ action, site, date: today }));
+  } catch(e) {}
+}
+
+function getLastActionLocal(empId) {
+  try {
+    const key  = 'acetech_last_' + empId;
+    const today = new Date().toISOString().slice(0,10);
+    const data  = JSON.parse(localStorage.getItem(key) || 'null');
+    if (data && data.date === today) return data;
+  } catch(e) {}
+  return null;
+}
+
 function addToOfflineQueue(empId, empName, action, site, timestamp) {
   const queue = getOfflineQueue();
+  const todayStr = new Date().toISOString().slice(0,10);
 
-  // Check for duplicate ClockIn — same employee cannot ClockIn twice offline
-  if (action === 'ClockIn') {
-    const todayStr = new Date().toISOString().slice(0,10);
-    const todayEntries = queue.filter(e => e.empId === empId && e.timestamp && e.timestamp.startsWith(todayStr));
-    const lastEntry = todayEntries.length > 0 ? todayEntries[todayEntries.length-1] : null;
-    if (lastEntry && lastEntry.action === 'ClockIn') {
-      console.warn('Duplicate offline ClockIn blocked for', empId);
-      return false; // Blocked
-    }
+  // Check last known action from localStorage
+  const lastKnown = getLastActionLocal(empId);
+  if (action === 'ClockIn' && lastKnown && lastKnown.action === 'ClockIn') {
+    console.warn('Duplicate offline ClockIn blocked for', empId);
+    return false;
+  }
+  if (action === 'ClockOut' && (!lastKnown || lastKnown.action !== 'ClockIn')) {
+    console.warn('No active ClockIn for ClockOut', empId);
+    return false;
+  }
+
+  // Also check offline queue for today
+  const todayEntries = queue.filter(e => e.empId === empId && e.timestamp && e.timestamp.startsWith(todayStr));
+  const lastQueued = todayEntries.length > 0 ? todayEntries[todayEntries.length-1] : null;
+  if (action === 'ClockIn' && lastQueued && lastQueued.action === 'ClockIn') {
+    return false;
   }
 
   queue.push({ empId, empName, action, site, timestamp, id: Date.now() });
   saveOfflineQueue(queue);
+  saveLastAction(empId, action, site);
   updateOfflineBadge();
   return true;
 }
@@ -2042,9 +2058,9 @@ async function removeSite(code, name) {
 // EMPLOYEE MANAGEMENT
 // --------------------------------------------------
 async function addEmployee() {
-  const name     = document.getElementById('emp-name').value.trim();
+  const name     = document.getElementById('new-emp-name').value.trim();
   const nic      = document.getElementById('emp-nic').value.trim();
-  const position = document.getElementById('emp-position').value.trim();
+  const position = document.getElementById('new-emp-position').value.trim();
   const rate     = document.getElementById('emp-rate').value.trim();
   const bank     = document.getElementById('emp-bank').value.trim();
   const paycycle = document.getElementById('emp-paycycle')?.value || 'Fortnightly';
@@ -2073,7 +2089,7 @@ async function addEmployee() {
       ['emp-name','emp-nic','emp-rate','emp-bank'].forEach(id => {
         document.getElementById(id).value = '';
       });
-      document.getElementById('emp-position').value = '';
+      document.getElementById('new-emp-position').value = '';
       // Refresh list
       loadEmployeeList();
     } else {
