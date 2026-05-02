@@ -1606,11 +1606,11 @@ async function submitClock(action) {
     return;
   }
 
-  // ONLINE: send to server
+  // ONLINE: send to server with short timeout
   try {
     const params     = new URLSearchParams({ action: 'clockEvent', empId: currentEmployee.id, event: action, site });
     const controller = new AbortController();
-    const tid        = setTimeout(() => controller.abort(), 10000);
+    const tid        = setTimeout(() => controller.abort(), 6000); // 6 second timeout
     const res        = await fetch(`${WEB_APP_URL}?${params.toString()}`, { signal: controller.signal });
     clearTimeout(tid);
     const data = await res.json();
@@ -1618,7 +1618,7 @@ async function submitClock(action) {
     if (data.success) {
       currentEmployee.lastAction = action;
       if (action === 'ClockIn') currentEmployee.lastSite = site;
-      saveLastAction(currentEmployee.id, action, site); // Persist for offline use
+      saveLastAction(currentEmployee.id, action, site);
       updateButtonStates(action, currentEmployee.lastSite);
       showConfirmation(action, currentEmployee.name, data.time || timeStr, true);
     } else {
@@ -1626,14 +1626,21 @@ async function submitClock(action) {
       showConfirmation(action, currentEmployee.name, timeStr, false, data.error || 'Submission failed.');
     }
   } catch(err) {
-    // Network failed — save offline
+    // Network failed or timeout — save to offline queue
     const p  = n => String(n).padStart(2,'0');
     const ts = now.getFullYear()+'-'+p(now.getMonth()+1)+'-'+p(now.getDate())+' '+p(now.getHours())+':'+p(now.getMinutes());
-    addToOfflineQueue(currentEmployee.id, currentEmployee.name, action, site, ts);
-    currentEmployee.lastAction = action;
-    if (action === 'ClockIn') currentEmployee.lastSite = site;
-    updateButtonStates(action, currentEmployee.lastSite);
-    showConfirmation(action, currentEmployee.name, timeStr, true, 'Saved offline - will sync when connected');
+    const saved = addToOfflineQueue(currentEmployee.id, currentEmployee.name, action, site, ts);
+    if (saved !== false) {
+      currentEmployee.lastAction = action;
+      if (action === 'ClockIn') currentEmployee.lastSite = site;
+      saveLastAction(currentEmployee.id, action, site);
+      updateButtonStates(action, currentEmployee.lastSite);
+      showConfirmation(action, currentEmployee.name, timeStr, true, 'Saved offline - will sync when connected');
+    } else {
+      updateButtonStates(currentEmployee.lastAction, currentEmployee.lastSite);
+      showConfirmation(action, currentEmployee.name, timeStr, false, 'Already clocked in.');
+    }
+    updateOfflineBadge();
   } finally {
     isSubmitting = false;
   }
@@ -1842,7 +1849,7 @@ These will sync automatically when connected.`);
 }
 
 async function syncOfflineQueue() {
-  if (syncInProgress || !isOnline) return;
+  if (syncInProgress || !navigator.onLine) return;
   const queue = getOfflineQueue();
   if (queue.length === 0) return;
 
@@ -2150,7 +2157,7 @@ async function removeEmployee(empId, empName) {
 
 // ?? Initialization ?????????????????????????????????????????????????????????
 updateOfflineBadge();
-setTimeout(() => { if (isOnline) syncOfflineQueue(); }, 2000);
+setTimeout(() => { if (navigator.onLine) syncOfflineQueue(); }, 2000);
 
 // Page initialized via window.addEventListener('load')
 
