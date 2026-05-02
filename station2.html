@@ -1447,7 +1447,11 @@ function showEmployeeCard(emp) {
   // Store lastSite on currentEmployee
   if (currentEmployee) currentEmployee.lastSite = emp.lastSite || null;
 
-  // If still loading — show dimmed buttons briefly, but set a timeout fallback
+  // ALWAYS show the card first
+  document.getElementById('idle-state').style.display = 'none';
+  document.getElementById('emp-card').classList.add('visible');
+
+  // If still loading status from server — show dimmed buttons
   if (emp.loading) {
     const btnIn  = document.getElementById('btn-clock-in');
     const btnOut = document.getElementById('btn-clock-out');
@@ -1459,20 +1463,17 @@ function showEmployeeCard(emp) {
     const siteDisp = document.getElementById('site-display');
     if (siteWrap) siteWrap.style.display = 'none';
     if (siteDisp) siteDisp.style.display = 'none';
-    // Safety timeout — if server never responds, enable buttons after 4 seconds
+    // Safety fallback — enable Clock In after 5 seconds if server never responds
     setTimeout(() => {
       if (currentEmployee && currentEmployee.id === emp.id) {
-        updateButtonStates(null, null); // Default to ClockIn available
+        updateButtonStates(null, null);
       }
-    }, 4000);
+    }, 5000);
     return;
   }
 
-  // Use centralised button state function
+  // Server responded — set correct button states
   updateButtonStates(emp.lastAction || null, emp.lastSite || null);
-
-  document.getElementById('idle-state').style.display = 'none';
-  document.getElementById('emp-card').classList.add('visible');
 }
 
 // --------------------------------------------------
