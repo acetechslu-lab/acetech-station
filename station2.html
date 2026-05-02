@@ -1512,21 +1512,13 @@ document.addEventListener('click', e => { if (!e.target.closest('.search-wrap'))
 // --------------------------------------------------
 // CLOCK IN / OUT
 // --------------------------------------------------
+// --------------------------------------------------
+// CLOCK IN / OUT
+// --------------------------------------------------
+
 async function submitClock(action) {
-  const banner = document.getElementById('status-banner');
-
-  // DEBUG: show step by step
-  function dbg(msg) {
-    console.log('[submitClock]', msg);
-    if (banner) banner.textContent = msg;
-  }
-
-  dbg('Step 1: tap received, action=' + action);
-
-  if (!currentEmployee) { dbg('ERROR: no currentEmployee'); showError(); return; }
-  dbg('Step 2: employee=' + currentEmployee.id);
-
-  if (isSubmitting) { dbg('BLOCKED: already submitting'); return; }
+  if (!currentEmployee) { showError(); return; }
+  if (isSubmitting) return;
   isSubmitting = true;
 
   const btnIn  = document.getElementById('btn-clock-in');
@@ -1534,84 +1526,79 @@ async function submitClock(action) {
   if (btnIn)  { btnIn.disabled = true;  btnIn.style.opacity  = '0.3'; }
   if (btnOut) { btnOut.disabled = true; btnOut.style.opacity = '0.3'; }
 
-  const now  = new Date();
-  const mins = now.getHours() * 60 + now.getMinutes();
-  const pad  = n => String(n).padStart(2,'0');
+  const now     = new Date();
+  const pad     = n => String(n).padStart(2,'0');
   const timeStr = pad(now.getHours())+':'+pad(now.getMinutes())+':'+pad(now.getSeconds());
+  const mins    = now.getHours() * 60 + now.getMinutes();
 
-  dbg('Step 3: time=' + timeStr + ' mins=' + mins + ' online=' + navigator.onLine);
+  // Get site
+  let site = '';
+  if (action === 'ClockIn') {
+    const sel = document.getElementById('site-select');
+    site = sel ? sel.value : '';
+    if (!site) {
+      isSubmitting = false;
+      updateButtonStates(currentEmployee.lastAction, currentEmployee.lastSite);
+      const bEl = document.getElementById('status-banner');
+      if (bEl) { bEl.textContent = 'Please select a site first'; bEl.className = 'status-banner clocked-out'; }
+      return;
+    }
+  } else {
+    site = currentEmployee.lastSite || '';
+  }
 
-  if (navigator.onLine && (mins < 360 || mins >= 1200)) {
+  // OFFLINE: skip network, save to queue immediately
+  if (!navigator.onLine) {
+    const p   = n => String(n).padStart(2,'0');
+    const ts  = now.getFullYear()+'-'+p(now.getMonth()+1)+'-'+p(now.getDate())+' '+p(now.getHours())+':'+p(now.getMinutes());
+    const ok  = addToOfflineQueue(currentEmployee.id, currentEmployee.name, action, site, ts);
     isSubmitting = false;
-    dbg('BLOCKED: outside hours');
+    if (ok === false) {
+      updateButtonStates(currentEmployee.lastAction, currentEmployee.lastSite);
+      showConfirmation(action, currentEmployee.name, timeStr, false, 'Already clocked in.');
+    } else {
+      currentEmployee.lastAction = action;
+      if (action === 'ClockIn') currentEmployee.lastSite = site;
+      updateButtonStates(action, currentEmployee.lastSite);
+      showConfirmation(action, currentEmployee.name, timeStr, true, 'Saved offline - will sync when connected');
+    }
+    return;
+  }
+
+  // ONLINE: entry window check
+  if (mins < 360 || mins >= 1200) {
+    isSubmitting = false;
+    updateButtonStates(currentEmployee.lastAction, currentEmployee.lastSite);
     showConfirmation(action, currentEmployee.name, timeStr, false, 'Outside hours 06:00-20:00. Use Manual Entry.');
     return;
   }
 
-  if (WEB_APP_URL === 'YOUR_GOOGLE_APPS_SCRIPT_WEB_APP_URL_HERE') {
-    isSubmitting = false;
-    showConfirmation(action, currentEmployee.name, timeStr, true);
-    return;
-  }
-
-  let site = '';
-
+  // ONLINE: send to server
   try {
-    if (action === 'ClockIn') {
-      const siteSelect = document.getElementById('site-select');
-      site = siteSelect ? siteSelect.value : '';
-      dbg('Step 4: site=' + site);
-      if (!site) {
-        isSubmitting = false;
-        updateButtonStates(currentEmployee.lastAction, currentEmployee.lastSite);
-        if (banner) { banner.textContent = 'Please select a site first'; banner.className = 'status-banner clocked-out'; }
-        return;
-      }
-    } else {
-      site = currentEmployee.lastSite || '';
-      dbg('Step 4: ClockOut site=' + site);
-    }
-
-    dbg('Step 5: sending to server...');
-    const params = new URLSearchParams({
-      action: 'clockEvent',
-      empId:  currentEmployee.id,
-      event:  action,
-      site:   site
-    });
-
-    // 8 second timeout — if server doesn't respond, go offline
+    const params     = new URLSearchParams({ action: 'clockEvent', empId: currentEmployee.id, event: action, site });
     const controller = new AbortController();
-    const timeoutId  = setTimeout(() => controller.abort(), 8000);
-
-    const res  = await fetch(`${WEB_APP_URL}?${params.toString()}`, { signal: controller.signal });
-    clearTimeout(timeoutId);
-    dbg('Step 6: got response, status=' + res.status);
+    const tid        = setTimeout(() => controller.abort(), 10000);
+    const res        = await fetch(`${WEB_APP_URL}?${params.toString()}`, { signal: controller.signal });
+    clearTimeout(tid);
     const data = await res.json();
-    dbg('Step 7: parsed JSON, success=' + data.success);
 
     if (data.success) {
-      if (currentEmployee) {
-        currentEmployee.lastAction = action;
-        if (action === 'ClockIn') currentEmployee.lastSite = site;
-        updateButtonStates(action, currentEmployee.lastSite);
-      }
-      showConfirmation(action, currentEmployee.name, data.time || timeStr, true);
-    } else {
-      updateButtonStates(currentEmployee ? currentEmployee.lastAction : null, currentEmployee ? currentEmployee.lastSite : null);
-      showConfirmation(action, currentEmployee.name, timeStr, false, data.error || 'Submission failed.');
-    }
-  } catch(err) {
-    dbg('Step catch: ' + err.message + ' - saving offline');
-    const now2 = new Date();
-    const p = n => String(n).padStart(2,'0');
-    const offlineTs = now2.getFullYear()+'-'+p(now2.getMonth()+1)+'-'+p(now2.getDate())+' '+p(now2.getHours())+':'+p(now2.getMinutes());
-    addToOfflineQueue(currentEmployee.id, currentEmployee.name, action, site, offlineTs);
-    if (currentEmployee) {
       currentEmployee.lastAction = action;
       if (action === 'ClockIn') currentEmployee.lastSite = site;
       updateButtonStates(action, currentEmployee.lastSite);
+      showConfirmation(action, currentEmployee.name, data.time || timeStr, true);
+    } else {
+      updateButtonStates(currentEmployee.lastAction, currentEmployee.lastSite);
+      showConfirmation(action, currentEmployee.name, timeStr, false, data.error || 'Submission failed.');
     }
+  } catch(err) {
+    // Network failed — save offline
+    const p  = n => String(n).padStart(2,'0');
+    const ts = now.getFullYear()+'-'+p(now.getMonth()+1)+'-'+p(now.getDate())+' '+p(now.getHours())+':'+p(now.getMinutes());
+    addToOfflineQueue(currentEmployee.id, currentEmployee.name, action, site, ts);
+    currentEmployee.lastAction = action;
+    if (action === 'ClockIn') currentEmployee.lastSite = site;
+    updateButtonStates(action, currentEmployee.lastSite);
     showConfirmation(action, currentEmployee.name, timeStr, true, 'Saved offline - will sync when connected');
   } finally {
     isSubmitting = false;
