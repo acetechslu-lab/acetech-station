@@ -1385,27 +1385,53 @@ async function lookupEmployee(empId) {
   } catch(e) { /* raw ID */ }
   cleanId = cleanId.toUpperCase();
 
-  // Step 1: Show card INSTANTLY from local cache (no network wait)
   const local = EMPLOYEES.find(e => e.id.toUpperCase() === cleanId);
-  if (local) {
-    // Show immediately with unknown status — buttons disabled until server responds
-    showEmployeeCard({ ...local, found: true, lastAction: null, lastSite: null, withinWindow: true, loading: true });
-  } else if (WEB_APP_URL === "YOUR_GOOGLE_APPS_SCRIPT_WEB_APP_URL_HERE") {
-    showError(); return;
+
+  // If offline — use cache immediately with full functionality
+  if (!navigator.onLine) {
+    if (local) {
+      // Get last action from offline queue to show correct button state
+      const queue = getOfflineQueue();
+      const todayStr = new Date().toISOString().slice(0,10);
+      // Find last action for this employee today from offline queue
+      const todayEntries = queue.filter(e =>
+        e.empId === cleanId && e.timestamp && e.timestamp.startsWith(todayStr)
+      );
+      let lastAction = null;
+      if (todayEntries.length > 0) {
+        lastAction = todayEntries[todayEntries.length - 1].action;
+      }
+      showEmployeeCard({
+        ...local, found: true,
+        lastAction, lastSite: null,
+        withinWindow: true, loading: false
+      });
+    } else {
+      showError();
+    }
+    return;
   }
 
-  // Step 2: Fetch clock status from server in background
+  // Online — show card instantly from cache, then update status from server
+  if (local) {
+    showEmployeeCard({ ...local, found: true, lastAction: null, lastSite: null, withinWindow: true, loading: true });
+  }
+
   try {
     const res  = await fetch(`${WEB_APP_URL}?action=lookup&id=${encodeURIComponent(cleanId)}`);
     const data = await res.json();
     if (data.found) {
-      showEmployeeCard(data); // Update with full status
+      showEmployeeCard(data);
     } else if (!local) {
-      showError(); // Not in cache and not on server
+      showError();
     }
   } catch {
-    // Network error — use cache with unknown status
-    if (!local) showError();
+    // Network error during online attempt — fall back to cache
+    if (local) {
+      showEmployeeCard({ ...local, found: true, lastAction: null, lastSite: null, withinWindow: true, loading: false });
+    } else {
+      showError();
+    }
   }
 }
 
@@ -1496,8 +1522,8 @@ async function submitClock(action) {
   const pad  = n => String(n).padStart(2,'0');
   const timeStr = pad(now.getHours())+':'+pad(now.getMinutes())+':'+pad(now.getSeconds());
 
-  // Entry window check: 6:00 AM - 8:00 PM
-  if (mins < 360 || mins >= 1200) {
+  // Entry window check: 6:00 AM - 8:00 PM (skip when offline)
+  if (!navigator.onLine === false && (mins < 360 || mins >= 1200)) {
     isSubmitting = false;
     showConfirmation(action, currentEmployee.name, timeStr, false,
       'Live entries only allowed 06:00 - 20:00. Use the Manual Entry tab.');
