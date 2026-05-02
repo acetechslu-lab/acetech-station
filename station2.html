@@ -805,23 +805,35 @@ const WEB_APP_URL        = "https://script.google.com/macros/s/AKfycbyg70dUxHNXX
 // Employee list - loaded live from Google Sheet on startup
 let EMPLOYEES = [];
 
+const EMPLOYEES_CACHE_KEY = 'acetech_employees';
+
 async function loadEmployeesFromSheet() {
-  if (WEB_APP_URL === "YOUR_GOOGLE_APPS_SCRIPT_WEB_APP_URL_HERE") {
-    // Demo fallback if no URL set
-    EMPLOYEES = [{ id:"DEMO-001", name:"Demo Employee", position:"Site Worker" }];
-    return;
-  }
+  // Always load from localStorage first (works offline)
+  try {
+    const cached = localStorage.getItem(EMPLOYEES_CACHE_KEY);
+    if (cached) {
+      const parsed = JSON.parse(cached);
+      if (parsed && parsed.length > 0) {
+        EMPLOYEES = parsed;
+        console.log(`Loaded ${EMPLOYEES.length} employees from local cache`);
+      }
+    }
+  } catch(e) { /* ignore */ }
+
+  // Then try to fetch fresh from server
+  if (!navigator.onLine) return;
+
   try {
     const res  = await fetch(`${WEB_APP_URL}?action=getEmployees`);
     const data = await res.json();
-    if (data.success && data.employees.length > 0) {
+    if (data.success && data.employees && data.employees.length > 0) {
       EMPLOYEES = data.employees;
-      console.log(`? Loaded ${EMPLOYEES.length} employees from sheet`);
-    } else {
-      console.warn("No employees returned from sheet");
+      // Save to localStorage for offline use
+      try { localStorage.setItem(EMPLOYEES_CACHE_KEY, JSON.stringify(EMPLOYEES)); } catch(e) {}
+      console.log(`Loaded ${EMPLOYEES.length} employees from server`);
     }
   } catch (err) {
-    console.error("Failed to load employees from sheet:", err);
+    console.log('Could not refresh employees from server - using cached list');
   }
 }
 
@@ -1414,14 +1426,23 @@ async function lookupEmployee(empId) {
         withinWindow: true, loading: false
       });
     } else {
-      showError();
+      // Employee not in local cache — show generic card with the ID
+      // They can still clock in, name will sync when online
+      showEmployeeCard({
+        id: cleanId, name: cleanId, position: 'Employee',
+        found: true, lastAction: null, lastSite: null,
+        withinWindow: true, loading: false
+      });
     }
     return;
   }
 
-  // Online — show card instantly from cache, then update status from server
+  // Online — show card from cache immediately with loading state
   if (local) {
     showEmployeeCard({ ...local, found: true, lastAction: null, lastSite: null, withinWindow: true, loading: true });
+  } else {
+    // Not in cache yet — show generic card
+    showEmployeeCard({ id: cleanId, name: 'Loading...', position: '', found: true, lastAction: null, lastSite: null, withinWindow: true, loading: true });
   }
 
   try {
