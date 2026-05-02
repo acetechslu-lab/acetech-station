@@ -805,6 +805,17 @@ const WEB_APP_URL        = "https://script.google.com/macros/s/AKfycbyg70dUxHNXX
 // --------------------------------------------------
 // Employee list - loaded live from Google Sheet on startup
 let EMPLOYEES = [];
+// Load from localStorage immediately and synchronously
+try {
+  const _cached = localStorage.getItem('acetech_employees');
+  if (_cached) {
+    const _parsed = JSON.parse(_cached);
+    if (_parsed && _parsed.length > 0) {
+      EMPLOYEES = _parsed;
+      console.log('Pre-loaded', EMPLOYEES.length, 'employees from cache');
+    }
+  }
+} catch(e) { /* ignore */ }
 
 const EMPLOYEES_CACHE_KEY = 'acetech_employees';
 
@@ -1572,11 +1583,11 @@ async function submitClock(action) {
   if (!navigator.onLine) {
     const p   = n => String(n).padStart(2,'0');
     const ts  = now.getFullYear()+'-'+p(now.getMonth()+1)+'-'+p(now.getDate())+' '+p(now.getHours())+':'+p(now.getMinutes());
-    const ok  = addToOfflineQueue(currentEmployee.id, currentEmployee.name, action, site, ts);
+    const added = addToOfflineQueue(currentEmployee.id, currentEmployee.name, action, site, ts);
     isSubmitting = false;
-    if (ok === false) {
+    if (added === false) {
       updateButtonStates(currentEmployee.lastAction, currentEmployee.lastSite);
-      showConfirmation(action, currentEmployee.name, timeStr, false, 'Already clocked in.');
+      showConfirmation(action, currentEmployee.name, timeStr, false, 'Already clocked in. Please Clock Out first.');
     } else {
       currentEmployee.lastAction = action;
       if (action === 'ClockIn') currentEmployee.lastSite = site;
@@ -1591,6 +1602,20 @@ async function submitClock(action) {
     isSubmitting = false;
     updateButtonStates(currentEmployee.lastAction, currentEmployee.lastSite);
     showConfirmation(action, currentEmployee.name, timeStr, false, 'Outside hours 06:00-20:00. Use Manual Entry.');
+    return;
+  }
+
+  // ONLINE: client-side duplicate guard
+  if (action === 'ClockIn' && currentEmployee.lastAction === 'ClockIn') {
+    isSubmitting = false;
+    updateButtonStates(currentEmployee.lastAction, currentEmployee.lastSite);
+    showConfirmation(action, currentEmployee.name, timeStr, false, 'Already clocked in. Please Clock Out first.');
+    return;
+  }
+  if (action === 'ClockOut' && currentEmployee.lastAction !== 'ClockIn') {
+    isSubmitting = false;
+    updateButtonStates(currentEmployee.lastAction, currentEmployee.lastSite);
+    showConfirmation(action, currentEmployee.name, timeStr, false, 'No active Clock In found.');
     return;
   }
 
