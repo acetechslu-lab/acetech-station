@@ -1900,14 +1900,12 @@ async function syncOfflineQueue() {
 window.addEventListener('online', () => {
   isOnline = true;
   updateOfflineBadge();
-  setStatus('[green] Back online - syncing offline entries...');
   setTimeout(syncOfflineQueue, 1000);
 });
 
 window.addEventListener('offline', () => {
   isOnline = false;
   updateOfflineBadge();
-  setStatus('[red] No internet connection - entries will be saved offline');
 });
 
 // Periodic sync attempt every 30 seconds
