@@ -1395,20 +1395,22 @@ async function lookupEmployee(empId) {
   // If offline — use cache immediately with full functionality
   if (!navigator.onLine) {
     if (local) {
-      // Get last action from offline queue to show correct button state
+      // Check offline queue for today's last action
       const queue = getOfflineQueue();
       const todayStr = new Date().toISOString().slice(0,10);
-      // Find last action for this employee today from offline queue
       const todayEntries = queue.filter(e =>
         e.empId === cleanId && e.timestamp && e.timestamp.startsWith(todayStr)
       );
       let lastAction = null;
+      let lastSite   = null;
       if (todayEntries.length > 0) {
-        lastAction = todayEntries[todayEntries.length - 1].action;
+        const last = todayEntries[todayEntries.length - 1];
+        lastAction = last.action;
+        lastSite   = last.site || null;
       }
       showEmployeeCard({
         ...local, found: true,
-        lastAction, lastSite: null,
+        lastAction, lastSite,
         withinWindow: true, loading: false
       });
     } else {
@@ -1743,9 +1745,22 @@ function saveOfflineQueue(queue) {
 
 function addToOfflineQueue(empId, empName, action, site, timestamp) {
   const queue = getOfflineQueue();
+
+  // Check for duplicate ClockIn — same employee cannot ClockIn twice offline
+  if (action === 'ClockIn') {
+    const todayStr = new Date().toISOString().slice(0,10);
+    const todayEntries = queue.filter(e => e.empId === empId && e.timestamp && e.timestamp.startsWith(todayStr));
+    const lastEntry = todayEntries.length > 0 ? todayEntries[todayEntries.length-1] : null;
+    if (lastEntry && lastEntry.action === 'ClockIn') {
+      console.warn('Duplicate offline ClockIn blocked for', empId);
+      return false; // Blocked
+    }
+  }
+
   queue.push({ empId, empName, action, site, timestamp, id: Date.now() });
   saveOfflineQueue(queue);
   updateOfflineBadge();
+  return true;
 }
 
 function updateOfflineBadge() {
@@ -1758,13 +1773,8 @@ function updateOfflineBadge() {
 
   if (!isOnline) {
     dot.className = 'offline-indicator';
-    if (queue.length > 0) {
-      badge.classList.add('visible');
-      text.textContent = queue.length + ' pending (offline)';
-    } else {
-      badge.classList.add('visible');
-      text.textContent = 'Offline';
-    }
+    badge.classList.add('visible');
+    text.textContent = queue.length > 0 ? queue.length + ' pending sync' : 'Offline mode';
   } else if (queue.length > 0) {
     dot.className = 'offline-indicator';
     badge.classList.add('visible');
@@ -1807,19 +1817,31 @@ async function syncOfflineQueue() {
         empId:     entry.empId,
         event:     entry.action,
         site:      entry.site || '',
-        offlineTs: entry.timestamp // pass original timestamp for accurate logging
+        offlineTs: entry.timestamp,
+        offline:   '1'  // flag so server knows this is an offline sync
       });
-      const res  = await fetch(`${WEB_APP_URL}?${params.toString()}`);
+
+      // 10 second timeout per entry
+      const controller = new AbortController();
+      const tid = setTimeout(() => controller.abort(), 10000);
+      const res  = await fetch(`${WEB_APP_URL}?${params.toString()}`, { signal: controller.signal });
+      clearTimeout(tid);
       const data = await res.json();
+
       if (!data.success) {
-        // Keep in queue if server rejected (e.g. duplicate) - but mark as error
-        entry.error = data.error || 'Server rejected';
-        remaining.push(entry);
+        console.warn('Offline sync rejected:', entry, data.error);
+        // Don't re-queue duplicates or already-recorded entries
+        if (data.error && data.error.includes('Already clocked')) {
+          console.log('Skipping duplicate entry');
+        } else {
+          entry.error = data.error || 'Server rejected';
+          remaining.push(entry);
+        }
       }
-      // Small delay between syncs to avoid overwhelming the server
-      await new Promise(r => setTimeout(r, 500));
+      // Delay between entries
+      await new Promise(r => setTimeout(r, 800));
     } catch(err) {
-      // Network still down - keep all remaining in queue
+      // Network down or timeout - keep remaining
       remaining.push(entry);
       break;
     }
