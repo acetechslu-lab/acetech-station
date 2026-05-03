@@ -595,7 +595,10 @@
         <div>
           <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:8px;">
             <div class="admin-section-title" style="margin-bottom:0;">Current Employees</div>
-            <button onclick="loadEmployeeList()" style="padding:4px 12px;background:transparent;border:1px solid var(--border);border-radius:12px;color:var(--muted);font-size:11px;cursor:pointer;">🔄 Refresh</button>
+            <div style="display:flex;gap:6px;">
+              <button onclick="printQRCards()" style="padding:4px 12px;background:transparent;border:1px solid var(--gold);border-radius:12px;color:var(--gold);font-size:11px;cursor:pointer;">🖨 Print QR Cards</button>
+              <button onclick="loadEmployeeList()" style="padding:4px 12px;background:transparent;border:1px solid var(--border);border-radius:12px;color:var(--muted);font-size:11px;cursor:pointer;">🔄 Refresh</button>
+            </div>
           </div>
           <div style="background:rgba(255,255,255,0.04);border:1px solid var(--border);border-radius:10px;padding:12px;max-height:300px;overflow-y:auto;">
             <div id="emp-list" style="font-size:12px;">
@@ -1387,13 +1390,19 @@ async function submitManualEntry() {
       note:     note     || ''
     });
     const controller = new AbortController();
-    const timeout = setTimeout(() => controller.abort(), 30000);
+    const hardTimeout = setTimeout(() => controller.abort(), 60000);
+    // Show reassurance message after 10s so user knows it's still working
+    const slowTimer = setTimeout(() => {
+      btn.textContent = '⏳ Still saving — please wait...';
+    }, 10000);
+
     let res, data;
     try {
       res  = await fetch(`${WEB_APP_URL}?${params.toString()}`, { signal: controller.signal });
       data = await res.json();
     } finally {
-      clearTimeout(timeout);
+      clearTimeout(hardTimeout);
+      clearTimeout(slowTimer);
     }
     if (data.success) {
       showEntryResult(`✓ Entry saved for ${data.empName} on ${date}`, true);
@@ -1402,11 +1411,11 @@ async function submitManualEntry() {
       document.getElementById('entry-site').selectedIndex = 0;
       document.getElementById('entry-note').value      = '';
     } else {
-      showEntryResult('Error: ' + (data.error || 'Unknown error'), false);
+      showEntryResult('✕ ' + (data.error || 'Unknown error'), false);
     }
   } catch (err) {
     if (err.name === 'AbortError') {
-      showEntryResult('Request timed out — server is waking up. Please try submitting again.', false);
+      showEntryResult('⏱ Server is warming up. Please try again in a few seconds.', false);
     } else {
       showEntryResult('Network error: ' + err.message, false);
     }
@@ -2342,6 +2351,66 @@ if ('serviceWorker' in navigator) {
   });
   caches.keys().then(keys => keys.forEach(k => caches.delete(k)));
 }
+
+// ── QR CARD PRINTING ────────────────────────────────────────────────────────
+function printQRCards() {
+  if (!EMPLOYEES || EMPLOYEES.length === 0) {
+    alert('No employees loaded. Click Refresh first.');
+    return;
+  }
+
+  const cards = EMPLOYEES.map(e => {
+    const qrUrl = `https://chart.googleapis.com/chart?chs=200x200&cht=qr&chl=${encodeURIComponent(e.id)}&choe=UTF-8&chld=M|2`;
+    return `
+      <div class="qr-card">
+        <div class="qr-company">ACEtech Attendance</div>
+        <img src="${qrUrl}" alt="QR ${e.id}" class="qr-img">
+        <div class="qr-name">${e.name}</div>
+        <div class="qr-id">${e.id}</div>
+        <div class="qr-pos">${e.position || ''}</div>
+      </div>`;
+  }).join('');
+
+  const win = window.open('', '_blank');
+  win.document.write(`<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="UTF-8">
+  <title>ACEtech QR Cards</title>
+  <style>
+    * { margin:0; padding:0; box-sizing:border-box; }
+    body { font-family: Arial, sans-serif; background:#fff; padding:10mm; }
+    .grid { display:grid; grid-template-columns: repeat(3, 1fr); gap:8mm; }
+    .qr-card {
+      border: 1px solid #ccc; border-radius: 8px;
+      padding: 8px; text-align: center;
+      break-inside: avoid; page-break-inside: avoid;
+      background: #fff;
+    }
+    .qr-company { font-size: 9px; font-weight: bold; color: #888; text-transform: uppercase; letter-spacing: 1px; margin-bottom: 4px; }
+    .qr-img { width: 120px; height: 120px; display: block; margin: 0 auto 6px; }
+    .qr-name { font-size: 13px; font-weight: bold; color: #111; }
+    .qr-id   { font-size: 11px; color: #555; letter-spacing: 1px; margin: 2px 0; }
+    .qr-pos  { font-size: 10px; color: #888; }
+    @media print {
+      body { padding: 5mm; }
+      .grid { gap: 5mm; }
+      .no-print { display: none; }
+    }
+  </style>
+</head>
+<body>
+  <div class="no-print" style="margin-bottom:12px;display:flex;gap:10px;align-items:center;">
+    <button onclick="window.print()" style="padding:8px 20px;background:#1a7f4b;color:#fff;border:none;border-radius:6px;font-size:14px;cursor:pointer;">🖨 Print</button>
+    <span style="font-size:13px;color:#555;">${EMPLOYEES.length} employee card(s) — 3 per row</span>
+  </div>
+  <div class="grid">${cards}</div>
+</body>
+</html>`);
+  win.document.close();
+}
+
+
 </script>
 </body>
 </html>
