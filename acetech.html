@@ -9,6 +9,8 @@
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
 <meta name="apple-mobile-web-app-title" content="ACEtech">
+<meta name="theme-color" content="#0a0f1a">
+<meta name="mobile-web-app-capable" content="yes">
 <link href="https://fonts.googleapis.com/css2?family=Barlow+Condensed:wght@300;400;600;700;800&family=Barlow:wght@300;400;500;600&display=swap" rel="stylesheet">
 <script src="https://cdnjs.cloudflare.com/ajax/libs/html5-qrcode/2.3.8/html5-qrcode.min.js"></script>
 <style>
@@ -366,6 +368,25 @@
   }
 
   .offline-badge{display:none;position:fixed;bottom:16px;right:16px;background:#C9A227;color:#0a0f1a;padding:6px 14px;border-radius:20px;font-size:12px;font-weight:700;cursor:pointer;z-index:9000;box-shadow:0 2px 8px rgba(0,0,0,0.4);}
+
+  /* ── TOUCH & NOTCH ── */
+  * { -webkit-tap-highlight-color: transparent; }
+  body { padding-bottom: env(safe-area-inset-bottom); padding-top: env(safe-area-inset-top); }
+  header { padding-left: max(18px, env(safe-area-inset-left)); padding-right: max(18px, env(safe-area-inset-right)); }
+
+  /* ── ADMIN PANEL — MOBILE ── */
+  @media (max-width: 700px) {
+    #screen-admin .screen-box { width: 100vw; border-radius: 0; }
+    .ap-tabs { overflow-x: auto; -webkit-overflow-scrolling: touch; }
+    .ap-tab  { font-size: 11px; padding: 10px 6px; white-space: nowrap; }
+    .ap-pane { padding: 20px 16px; }
+    /* Stack 2-col grids to single column on phones */
+    .ap-pane > div[style*="grid-template-columns"] {
+      display: flex !important;
+      flex-direction: column !important;
+      gap: 16px !important;
+    }
+  }
   .offline-badge.visible{display:block;}
   .net-dot{display:inline-block;width:8px;height:8px;border-radius:50%;background:#da3633;margin-right:6px;animation:blink 1.5s infinite;}
   .net-dot.online{background:#2ea043;animation:none;}
@@ -462,7 +483,7 @@
   </div>
 </div>
 
-<div class="screen" id="screen-admin" style="align-items:center;justify-content:center;padding:20px 0;overflow-y:auto;">
+<div class="screen" id="screen-admin" style="align-items:center;justify-content:flex-start;padding:0;overflow-y:auto;">
   <div class="screen-box">
 
     <!-- ── HEADER ── -->
@@ -836,6 +857,14 @@ const DEFAULT_ADMIN_PASS = "acetech2025admin"; // ? change this to your admin pa
 const AUTO_LOCK_MINUTES  = 60;
 const WEB_APP_URL        = "https://script.google.com/macros/s/AKfycbyo2ujN6eGRhI2omit6HUfLA-h6eRQIDXEdoFqcbKQH17wleHNRCDEKPTj9MAnPRYP_/exec";
 
+// Wrapper: adds 30s timeout to every GAS fetch so Safari/iPhone never hangs
+async function gasFetch(url, ms = 30000) {
+  const ctrl = new AbortController();
+  const tid  = setTimeout(() => ctrl.abort(), ms);
+  try   { return await fetch(url, { signal: ctrl.signal }); }
+  finally { clearTimeout(tid); }
+}
+
 // --------------------------------------------------
 // EMPLOYEE LIST - replace with your real employees
 // --------------------------------------------------
@@ -872,7 +901,7 @@ async function loadEmployeesFromSheet() {
   if (!navigator.onLine) return;
 
   try {
-    const res  = await fetch(`${WEB_APP_URL}?action=getEmployees`);
+    const res  = await gasFetch(`${WEB_APP_URL}?action=getEmployees`);
     const data = await res.json();
     if (data.success && data.employees && data.employees.length > 0) {
       EMPLOYEES = data.employees;
@@ -1357,10 +1386,17 @@ async function submitManualEntry() {
       site:     site,
       note:     note     || ''
     });
-    const res  = await fetch(`${WEB_APP_URL}?${params.toString()}`);
-    const data = await res.json();
+    const controller = new AbortController();
+    const timeout = setTimeout(() => controller.abort(), 30000);
+    let res, data;
+    try {
+      res  = await fetch(`${WEB_APP_URL}?${params.toString()}`, { signal: controller.signal });
+      data = await res.json();
+    } finally {
+      clearTimeout(timeout);
+    }
     if (data.success) {
-      showEntryResult(`OK Entry saved for ${data.empName} on ${date}`, true);
+      showEntryResult(`✓ Entry saved for ${data.empName} on ${date}`, true);
       document.getElementById('entry-clock-in').value  = '';
       document.getElementById('entry-clock-out').value = '';
       document.getElementById('entry-site').selectedIndex = 0;
@@ -1369,11 +1405,15 @@ async function submitManualEntry() {
       showEntryResult('Error: ' + (data.error || 'Unknown error'), false);
     }
   } catch (err) {
-    showEntryResult('Network error. Check connection.', false);
+    if (err.name === 'AbortError') {
+      showEntryResult('Request timed out — server is waking up. Please try submitting again.', false);
+    } else {
+      showEntryResult('Network error: ' + err.message, false);
+    }
   }
 
   btn.disabled = false;
-  btn.textContent = 'OK   Submit Entry';
+  btn.textContent = '✓   Submit Entry';
 }
 
 function showEntryResult(msg, success) {
@@ -2060,7 +2100,7 @@ async function loadSiteDropdown() {
 
   // Then try to fetch latest from server
   try {
-    const res  = await fetch(`${WEB_APP_URL}?action=getSites`);
+    const res  = await gasFetch(`${WEB_APP_URL}?action=getSites`);
     const data = await res.json();
     if (data.success && data.sites && data.sites.length > 0) {
       cachedSites = data.sites;
@@ -2095,7 +2135,7 @@ async function loadSiteList() {
   listDiv.innerHTML = '<div style="color:var(--muted);text-align:center;padding:12px;">... Loading...</div>';
 
   try {
-    const res  = await fetch(`${WEB_APP_URL}?action=getSites`);
+    const res  = await gasFetch(`${WEB_APP_URL}?action=getSites`);
     const data = await res.json();
     cachedSites = data.sites || [];
 
@@ -2136,7 +2176,7 @@ async function addSite() {
   result.textContent = '... Adding...';
 
   try {
-    const res  = await fetch(`${WEB_APP_URL}?action=addSite&code=${encodeURIComponent(code)}&name=${encodeURIComponent(name)}`);
+    const res  = await gasFetch(`${WEB_APP_URL}?action=addSite&code=${encodeURIComponent(code)}&name=${encodeURIComponent(name)}`);
     const data = await res.json();
     if (data.success) {
       result.style.color = 'var(--green)';
@@ -2158,7 +2198,7 @@ async function addSite() {
 async function removeSite(code, name) {
   if (!confirm(`Remove site: ${name} (${code})?`)) return;
   try {
-    const res  = await fetch(`${WEB_APP_URL}?action=deleteSite&code=${encodeURIComponent(code)}`);
+    const res  = await gasFetch(`${WEB_APP_URL}?action=deleteSite&code=${encodeURIComponent(code)}`);
     const data = await res.json();
     if (data.success) { cachedSites = []; loadSiteList(); }
     else alert('Error: ' + data.error);
@@ -2190,7 +2230,7 @@ async function addEmployee() {
     const params = new URLSearchParams({
       action: 'addEmployee', name, nic, position, rate, bank, paycycle
     });
-    const res  = await fetch(`${WEB_APP_URL}?${params.toString()}`);
+    const res  = await gasFetch(`${WEB_APP_URL}?${params.toString()}`);
     const data = await res.json();
 
     if (data.success) {
@@ -2229,7 +2269,7 @@ async function loadEmployeeList() {
   listDiv.innerHTML = '<div style="color:var(--muted);text-align:center;padding:12px;">... Loading...</div>';
 
   try {
-    const res  = await fetch(`${WEB_APP_URL}?action=getEmployees`);
+    const res  = await gasFetch(`${WEB_APP_URL}?action=getEmployees`);
     const data = await res.json();
 
     if (!data.employees || data.employees.length === 0) {
@@ -2260,7 +2300,7 @@ async function removeEmployee(empId, empName) {
 
   const listDiv = document.getElementById('emp-list');
   try {
-    const res  = await fetch(`${WEB_APP_URL}?action=deleteEmployee&id=${encodeURIComponent(empId)}`);
+    const res  = await gasFetch(`${WEB_APP_URL}?action=deleteEmployee&id=${encodeURIComponent(empId)}`);
     const data = await res.json();
     if (data.success) {
       loadEmployeeList();
