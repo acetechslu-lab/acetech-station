@@ -1487,6 +1487,7 @@ function startScanner() {
         if (id) empId = id;
       } catch(e) { /* raw ID value */ }
       stopScanner();
+      entrySource = 'QR Scan';
       lookupEmployee(empId.toUpperCase());
     },
     () => {}
@@ -1528,8 +1529,9 @@ function cancelFullscreenScan() {
 // --------------------------------------------------
 let currentEmployee = null;
 let isSubmitting   = false;  // Global lock - prevents any concurrent clock submissions
+let entrySource    = 'Unknown';  // Tracks how employee was looked up: QR Scan, Manual ID, Name Search
 
-function lookupById()     { const id = document.getElementById('manual-id-input').value.trim().toUpperCase(); if (id) lookupEmployee(id); }
+function lookupById()     { const id = document.getElementById('manual-id-input').value.trim().toUpperCase(); if (id) { entrySource = 'Manual ID'; lookupEmployee(id); } }
 function lookupFromName() { const id = document.getElementById('name-id-display').value.trim().toUpperCase(); if (id && id !== '-') lookupEmployee(id); }
 
 async function lookupEmployee(empId) {
@@ -1654,6 +1656,7 @@ function selectEmployee(id, name) {
   document.getElementById('name-id-display').value   = id;
   document.getElementById('name-results').classList.remove('open');
   // Auto-lookup immediately on selection so user doesn't need to tap GO
+  entrySource = 'Name Search';
   lookupEmployee(id);
 }
 
@@ -1702,7 +1705,7 @@ async function submitClock(action) {
   if (!navigator.onLine) {
     const p   = n => String(n).padStart(2,'0');
     const ts  = now.getFullYear()+'-'+p(now.getMonth()+1)+'-'+p(now.getDate())+' '+p(now.getHours())+':'+p(now.getMinutes());
-    const added = addToOfflineQueue(currentEmployee.id, currentEmployee.name, action, site, ts);
+    const added = addToOfflineQueue(currentEmployee.id, currentEmployee.name, action, site, ts, entrySource);
     isSubmitting = false;
     if (added === false) {
       updateButtonStates(currentEmployee.lastAction, currentEmployee.lastSite);
@@ -1740,7 +1743,7 @@ async function submitClock(action) {
 
   // ONLINE: send to server with short timeout
   try {
-    const params     = new URLSearchParams({ action: 'clockEvent', empId: currentEmployee.id, event: action, site });
+    const params     = new URLSearchParams({ action: 'clockEvent', empId: currentEmployee.id, empName: currentEmployee.name, event: action, site, flag: entrySource });
     const controller = new AbortController();
     const tid        = setTimeout(() => controller.abort(), 6000); // 6 second timeout
     const res        = await fetch(`${WEB_APP_URL}?${params.toString()}`, { signal: controller.signal });
@@ -1761,7 +1764,7 @@ async function submitClock(action) {
     // Network failed or timeout — save to offline queue
     const p  = n => String(n).padStart(2,'0');
     const ts = now.getFullYear()+'-'+p(now.getMonth()+1)+'-'+p(now.getDate())+' '+p(now.getHours())+':'+p(now.getMinutes());
-    const saved = addToOfflineQueue(currentEmployee.id, currentEmployee.name, action, site, ts);
+    const saved = addToOfflineQueue(currentEmployee.id, currentEmployee.name, action, site, ts, entrySource);
     if (saved !== false) {
       currentEmployee.lastAction = action;
       if (action === 'ClockIn') currentEmployee.lastSite = site;
@@ -1927,7 +1930,7 @@ function getLastActionLocal(empId) {
   return null;
 }
 
-function addToOfflineQueue(empId, empName, action, site, timestamp) {
+function addToOfflineQueue(empId, empName, action, site, timestamp, flag) {
   const queue = getOfflineQueue();
   // Use LOCAL date (not UTC) — matches entry.timestamp which is built from local new Date()
   const now = new Date();
@@ -1953,7 +1956,7 @@ function addToOfflineQueue(empId, empName, action, site, timestamp) {
     return false;
   }
 
-  queue.push({ empId, empName, action, site, timestamp, id: Date.now() });
+  queue.push({ empId, empName, action, site, timestamp, flag: flag || 'Unknown', id: Date.now() });
   saveOfflineQueue(queue);
   saveLastAction(empId, action, site);
   updateOfflineBadge();
@@ -2018,8 +2021,10 @@ async function syncOfflineQueue() {
       const params = new URLSearchParams({
         action:    'clockEvent',
         empId:     entry.empId,
+        empName:   entry.empName || '',
         event:     entry.action,
         site:      entry.site || '',
+        flag:      entry.flag || 'Unknown',
         offlineTs: entry.timestamp || '',
         offline:   '1'
       });
