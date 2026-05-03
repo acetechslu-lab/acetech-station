@@ -72,7 +72,13 @@
   .blocked-icon{font-size:60px;margin-bottom:16px;}
 
   /* ── ADMIN PANEL ── */
-  #screen-admin .screen-box{max-width:500px;text-align:left;padding:32px;}
+  #screen-admin .screen-box{max-width:860px;width:95vw;text-align:left;padding:0;border-radius:16px;overflow:hidden;}
+  .ap-tabs{display:flex;border-bottom:1px solid var(--border);background:rgba(255,255,255,0.03);}
+  .ap-tab{flex:1;padding:12px 8px;background:none;border:none;color:var(--muted);font-family:'Barlow',sans-serif;font-size:13px;font-weight:600;cursor:pointer;letter-spacing:.5px;transition:color .2s,border-bottom .2s;border-bottom:3px solid transparent;}
+  .ap-tab.active{color:var(--gold);border-bottom:3px solid var(--gold);}
+  .ap-tab:hover:not(.active){color:var(--text);}
+  .ap-pane{display:none;padding:28px 32px;min-height:340px;}
+  .ap-pane.active{display:block;}
   .admin-title{font-family:'Barlow Condensed',sans-serif;font-size:22px;font-weight:700;color:var(--white);margin-bottom:20px;display:flex;align-items:center;justify-content:space-between;}
   .device-list{display:flex;flex-direction:column;gap:8px;max-height:220px;overflow-y:auto;margin-bottom:20px;}
   .device-item{display:flex;align-items:center;justify-content:space-between;background:var(--surface);border:1px solid var(--border);border-radius:8px;padding:10px 14px;}
@@ -456,108 +462,129 @@
   </div>
 </div>
 
-<div class="screen" id="screen-admin">
-  <div class="screen-box" style="max-width:500px;text-align:left;padding:32px;">
-    <div class="admin-title">
+<div class="screen" id="screen-admin" style="align-items:center;justify-content:center;padding:20px 0;overflow-y:auto;">
+  <div class="screen-box">
+
+    <!-- ── HEADER ── -->
+    <div class="admin-title" style="padding:20px 28px 0;margin-bottom:0;">
       ⚙️ Admin Panel
       <button class="auth-btn secondary" style="width:auto;padding:6px 14px;font-size:12px;" onclick="closeAdmin()">✕ Close</button>
     </div>
 
-    <!-- Change PIN -->
-    <div class="admin-section-title">Change Station PIN</div>
-    <div class="admin-row">
-      <input type="password" class="admin-input" id="new-pin" placeholder="New 4-digit PIN" maxlength="4" pattern="\d{4}">
-      <input type="password" class="admin-input" id="confirm-pin" placeholder="Confirm PIN" maxlength="4" pattern="\d{4}">
-      <button class="admin-add-btn" onclick="changePin()">Save</button>
+    <!-- ── TABS ── -->
+    <div class="ap-tabs">
+      <button class="ap-tab active" onclick="switchAdminTab('security',this)">🔒 Security</button>
+      <button class="ap-tab" onclick="switchAdminTab('devices',this)">📱 Devices</button>
+      <button class="ap-tab" onclick="switchAdminTab('sites',this)">📍 Sites</button>
+      <button class="ap-tab" onclick="switchAdminTab('employees',this)">👥 Employees</button>
     </div>
-    <div class="auth-error" id="pin-change-error" style="margin-top:-12px;margin-bottom:12px;"></div>
 
-    <!-- Change Admin Password -->
-    <div class="admin-section-title">Change Admin Password</div>
-    <div class="admin-row">
-      <input type="password" class="admin-input" id="new-admin-pass" placeholder="New admin password">
-      <button class="admin-add-btn" onclick="changeAdminPass()">Save</button>
-    </div>
-    <div class="auth-error" id="admin-pass-error" style="margin-top:-12px;margin-bottom:12px;"></div>
-
-    <!-- Approved Devices -->
-    <div class="admin-section-title">Approved Devices</div>
-    <div class="device-list" id="device-list"></div>
-
-    <!-- Add device manually -->
-    <div class="admin-section-title">Add Device by Code</div>
-    <div class="admin-row">
-      <input type="text" class="admin-input" id="new-device-code" placeholder="Device fingerprint code" autocomplete="off">
-      <input type="text" class="admin-input" id="new-device-name" placeholder="Device name" autocomplete="off">
-      <button class="admin-add-btn" onclick="addDeviceManually()">Add</button>
-    </div>
-    <div class="auth-error" id="device-add-error" style="margin-top:-12px;margin-bottom:0;">
-
-    <!-- ══ SITE MANAGEMENT ══ -->
-    <div class="admin-section-title" style="margin-top:24px;">📍 Site Management</div>
-
-    <div style="background:rgba(255,255,255,0.04);border:1px solid var(--border);border-radius:10px;padding:16px;margin-bottom:12px;">
-      <div style="font-size:11px;font-weight:600;color:var(--muted);margin-bottom:10px;text-transform:uppercase;letter-spacing:0.1em;">Add New Site</div>
+    <!-- ── PANE: SECURITY ── -->
+    <div class="ap-pane active" id="ap-security">
+      <div class="admin-section-title">Change Station PIN</div>
       <div class="admin-row">
-        <input type="text" class="admin-input" id="site-code" placeholder="Code (e.g. JS)" maxlength="6" style="text-transform:uppercase;">
-        <input type="text" class="admin-input" id="site-name" placeholder="Site Name (e.g. Javed Samuel)">
-        <button class="admin-add-btn" onclick="addSite()">+ Add</button>
+        <input type="password" class="admin-input" id="new-pin" placeholder="New 4-digit PIN" maxlength="4" pattern="\d{4}">
+        <input type="password" class="admin-input" id="confirm-pin" placeholder="Confirm PIN" maxlength="4" pattern="\d{4}">
+        <button class="admin-add-btn" onclick="changePin()">Save</button>
       </div>
-      <div id="site-add-result" style="font-size:12px;text-align:center;min-height:18px;margin-top:4px;"></div>
-    </div>
+      <div class="auth-error" id="pin-change-error" style="margin-top:-12px;margin-bottom:20px;"></div>
 
-    <div style="background:rgba(255,255,255,0.04);border:1px solid var(--border);border-radius:10px;padding:16px;margin-bottom:20px;">
-      <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:10px;">
-        <div style="font-size:11px;font-weight:600;color:var(--muted);text-transform:uppercase;letter-spacing:0.1em;">Active Sites</div>
-        <button onclick="loadSiteList()" style="padding:4px 12px;background:transparent;border:1px solid var(--border);border-radius:12px;color:var(--muted);font-size:11px;cursor:pointer;">🔄 Refresh</button>
-      </div>
-      <div id="site-list" style="max-height:200px;overflow-y:auto;font-size:12px;">
-        <div style="color:var(--muted);text-align:center;padding:12px;">Tap Refresh to load</div>
-      </div>
-    </div>
-
-    <!-- ══ EMPLOYEE MANAGEMENT ══ -->
-    <div class="admin-section-title" style="margin-top:24px;">👥 Employee Management</div>
-
-    <!-- Add Employee Form -->
-    <div style="background:rgba(255,255,255,0.04);border:1px solid var(--border);border-radius:10px;padding:16px;margin-bottom:12px;">
-      <div style="font-size:11px;font-weight:600;color:var(--muted);margin-bottom:10px;text-transform:uppercase;letter-spacing:0.1em;">Add New Employee</div>
+      <div class="admin-section-title">Change Admin Password</div>
       <div class="admin-row">
-        <input type="text" class="admin-input" id="new-emp-name" placeholder="Full Name (e.g. Smith, John)">
-        <input type="text" class="admin-input" id="emp-nic"  placeholder="NIC Number">
+        <input type="password" class="admin-input" id="new-admin-pass" placeholder="New admin password">
+        <button class="admin-add-btn" onclick="changeAdminPass()">Save</button>
       </div>
-      <div class="admin-row">
-        <select class="admin-input" id="new-emp-position">
-          <option value="">Select Position...</option>
-          <option>Foreman</option><option>Mason</option><option>Carpenter</option>
-          <option>Helper</option><option>Labourer</option><option>Driver</option>
-          <option>Supervisor</option><option>Other</option>
-        </select>
-        <input type="number" class="admin-input" id="emp-rate" placeholder="Rate/hr ($)" step="0.01">
-      </div>
-      <div class="admin-row">
-        <select class="admin-input" id="emp-paycycle">
-          <option value="Fortnightly">Fortnightly (Construction)</option>
-          <option value="Monthly">Monthly (Office/Supervisors)</option>
-        </select>
-        <input type="text" class="admin-input" id="emp-bank" placeholder="Bank Account (optional)">
-        <button class="admin-add-btn" onclick="addEmployee()">+ Add</button>
-      </div>
-      <div id="emp-add-result" style="font-size:12px;text-align:center;min-height:18px;margin-top:4px;"></div>
+      <div class="auth-error" id="admin-pass-error" style="margin-top:-12px;margin-bottom:12px;"></div>
     </div>
 
-    <!-- Employee List -->
-    <div style="background:rgba(255,255,255,0.04);border:1px solid var(--border);border-radius:10px;padding:16px;">
-      <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:10px;">
-        <div style="font-size:11px;font-weight:600;color:var(--muted);text-transform:uppercase;letter-spacing:0.1em;">Current Employees</div>
-        <button onclick="loadEmployeeList()" style="padding:4px 12px;background:transparent;border:1px solid var(--border);border-radius:12px;color:var(--muted);font-size:11px;cursor:pointer;">🔄 Refresh</button>
+    <!-- ── PANE: DEVICES ── -->
+    <div class="ap-pane" id="ap-devices">
+      <div class="admin-section-title">Approved Devices</div>
+      <div class="device-list" id="device-list" style="margin-bottom:24px;"></div>
+
+      <div class="admin-section-title">Add Device by Code</div>
+      <div class="admin-row">
+        <input type="text" class="admin-input" id="new-device-code" placeholder="Device fingerprint code" autocomplete="off">
+        <input type="text" class="admin-input" id="new-device-name" placeholder="Device name" autocomplete="off">
+        <button class="admin-add-btn" onclick="addDeviceManually()">Add</button>
       </div>
-      <div id="emp-list" style="max-height:260px;overflow-y:auto;font-size:12px;">
-        <div style="color:var(--muted);text-align:center;padding:16px;">Tap Refresh to load</div>
+      <div class="auth-error" id="device-add-error" style="margin-top:-12px;margin-bottom:0;"></div>
+    </div>
+
+    <!-- ── PANE: SITES ── -->
+    <div class="ap-pane" id="ap-sites">
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:20px;">
+        <div>
+          <div class="admin-section-title">Add New Site</div>
+          <div style="background:rgba(255,255,255,0.04);border:1px solid var(--border);border-radius:10px;padding:16px;">
+            <div class="admin-row" style="flex-direction:column;gap:10px;">
+              <div style="display:flex;gap:8px;">
+                <input type="text" class="admin-input" id="site-code" placeholder="Code (e.g. JS)" maxlength="6" style="text-transform:uppercase;max-width:100px;">
+                <input type="text" class="admin-input" id="site-name" placeholder="Site Name (e.g. Javed Samuel)">
+              </div>
+              <button class="admin-add-btn" style="width:100%;" onclick="addSite()">+ Add Site</button>
+            </div>
+            <div id="site-add-result" style="font-size:12px;text-align:center;min-height:18px;margin-top:8px;"></div>
+          </div>
+        </div>
+        <div>
+          <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:8px;">
+            <div class="admin-section-title" style="margin-bottom:0;">Active Sites</div>
+            <button onclick="loadSiteList()" style="padding:4px 12px;background:transparent;border:1px solid var(--border);border-radius:12px;color:var(--muted);font-size:11px;cursor:pointer;">🔄 Refresh</button>
+          </div>
+          <div style="background:rgba(255,255,255,0.04);border:1px solid var(--border);border-radius:10px;padding:12px;max-height:260px;overflow-y:auto;">
+            <div id="site-list" style="font-size:12px;">
+              <div style="color:var(--muted);text-align:center;padding:12px;">Click Refresh to load</div>
+            </div>
+          </div>
+        </div>
       </div>
     </div>
 
-</div>
+    <!-- ── PANE: EMPLOYEES ── -->
+    <div class="ap-pane" id="ap-employees">
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:20px;">
+        <div>
+          <div class="admin-section-title">Add New Employee</div>
+          <div style="background:rgba(255,255,255,0.04);border:1px solid var(--border);border-radius:10px;padding:16px;">
+            <div class="admin-row">
+              <input type="text" class="admin-input" id="new-emp-name" placeholder="Full Name (e.g. Smith, John)">
+              <input type="text" class="admin-input" id="emp-nic" placeholder="NIC Number">
+            </div>
+            <div class="admin-row">
+              <select class="admin-input" id="new-emp-position">
+                <option value="">Select Position...</option>
+                <option>Foreman</option><option>Mason</option><option>Carpenter</option>
+                <option>Helper</option><option>Labourer</option><option>Driver</option>
+                <option>Supervisor</option><option>Other</option>
+              </select>
+              <input type="number" class="admin-input" id="emp-rate" placeholder="Rate/hr ($)" step="0.01">
+            </div>
+            <div class="admin-row">
+              <select class="admin-input" id="emp-paycycle">
+                <option value="Fortnightly">Fortnightly (Construction)</option>
+                <option value="Monthly">Monthly (Office/Supervisors)</option>
+              </select>
+              <input type="text" class="admin-input" id="emp-bank" placeholder="Bank Account (optional)">
+            </div>
+            <button class="admin-add-btn" style="width:100%;margin-top:4px;" onclick="addEmployee()">+ Add Employee</button>
+            <div id="emp-add-result" style="font-size:12px;text-align:center;min-height:18px;margin-top:8px;"></div>
+          </div>
+        </div>
+        <div>
+          <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:8px;">
+            <div class="admin-section-title" style="margin-bottom:0;">Current Employees</div>
+            <button onclick="loadEmployeeList()" style="padding:4px 12px;background:transparent;border:1px solid var(--border);border-radius:12px;color:var(--muted);font-size:11px;cursor:pointer;">🔄 Refresh</button>
+          </div>
+          <div style="background:rgba(255,255,255,0.04);border:1px solid var(--border);border-radius:10px;padding:12px;max-height:300px;overflow-y:auto;">
+            <div id="emp-list" style="font-size:12px;">
+              <div style="color:var(--muted);text-align:center;padding:16px;">Click Refresh to load</div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
   </div>
 </div>
 
@@ -713,6 +740,15 @@
             </div>
           </div>
 
+          <!-- Site selector -->
+          <div>
+            <label class="field-label">📍 Work Site</label>
+            <select class="text-input" id="entry-site"
+              style="font-size:14px;cursor:pointer;">
+              <option value="">- Select a site -</option>
+            </select>
+          </div>
+
           <!-- Note -->
           <div>
             <label class="field-label">Note (optional)</label>
@@ -798,7 +834,7 @@
 const DEFAULT_PIN        = "1234";   // ? change this to your PIN
 const DEFAULT_ADMIN_PASS = "acetech2025admin"; // ? change this to your admin password
 const AUTO_LOCK_MINUTES  = 60;
-const WEB_APP_URL        = "https://script.google.com/macros/s/AKfycbyg70dUxHNXXo4ztyRLFY4UK_1yCh5wkMfwVCc19EuWMSdjnCNLuz_ai9Q4WCjqDvIVNA/exec";
+const WEB_APP_URL        = "https://script.google.com/macros/s/AKfycbyo2ujN6eGRhI2omit6HUfLA-h6eRQIDXEdoFqcbKQH17wleHNRCDEKPTj9MAnPRYP_/exec";
 
 // --------------------------------------------------
 // EMPLOYEE LIST - replace with your real employees
@@ -1083,6 +1119,13 @@ function openAdminPanel() {
   showScreen('screen-admin');
 }
 
+function switchAdminTab(name, btn) {
+  document.querySelectorAll('.ap-tab').forEach(t => t.classList.remove('active'));
+  document.querySelectorAll('.ap-pane').forEach(p => p.classList.remove('active'));
+  btn.classList.add('active');
+  document.getElementById('ap-' + name).classList.add('active');
+}
+
 function closeAdmin() {
   if (isDeviceApproved()) showScreen('screen-pin');
   else showScreen('screen-blocked');
@@ -1205,6 +1248,17 @@ function unlockManualEntry() {
   }
   errEl.classList.remove('show');
   manualEntryUnlocked = true;
+  // Populate site selector with cached sites
+  const entrySiteSel = document.getElementById('entry-site');
+  if (entrySiteSel) {
+    entrySiteSel.innerHTML = '<option value="">- Select a site -</option>';
+    (cachedSites.length > 0 ? cachedSites : DEFAULT_SITE_LIST).forEach(s => {
+      const opt = document.createElement('option');
+      opt.value = s.code;
+      opt.textContent = s.name + ' (' + s.code + ')';
+      entrySiteSel.appendChild(opt);
+    });
+  }
   document.getElementById('entry-locked').style.display = 'none';
   const form = document.getElementById('entry-form');
   form.style.display = 'flex';
@@ -1268,9 +1322,24 @@ async function submitManualEntry() {
   // Validate
   if (!empId)    { showEntryResult('Please select an employee.', false); return; }
   if (!date)     { showEntryResult('Please select a date.', false); return; }
+  const site = document.getElementById('entry-site')?.value || '';
+  if (!site)     { showEntryResult('Please select a work site.', false); return; }
   if (!clockIn && !clockOut) { showEntryResult('Enter at least a Clock In or Clock Out time.', false); return; }
   if (clockIn && clockOut && clockIn >= clockOut) {
     showEntryResult('Clock Out must be after Clock In.', false); return;
+  }
+
+  // Rule: No future times (only applies if date is today)
+  const _now = new Date();
+  const _todayStr = _now.getFullYear() + '-' + String(_now.getMonth()+1).padStart(2,'0') + '-' + String(_now.getDate()).padStart(2,'0');
+  if (date === _todayStr) {
+    const _nowTime = String(_now.getHours()).padStart(2,'0') + ':' + String(_now.getMinutes()).padStart(2,'0');
+    if (clockIn && clockIn > _nowTime) {
+      showEntryResult(`Clock In time (${clockIn}) cannot be in the future — current time is ${_nowTime}.`, false); return;
+    }
+    if (clockOut && clockOut > _nowTime) {
+      showEntryResult(`Clock Out time (${clockOut}) cannot be in the future — current time is ${_nowTime}.`, false); return;
+    }
   }
 
   const btn = document.getElementById('entry-submit-btn');
@@ -1285,6 +1354,7 @@ async function submitManualEntry() {
       date,
       clockIn:  clockIn  || '',
       clockOut: clockOut || '',
+      site:     site,
       note:     note     || ''
     });
     const res  = await fetch(`${WEB_APP_URL}?${params.toString()}`);
@@ -1293,6 +1363,7 @@ async function submitManualEntry() {
       showEntryResult(`OK Entry saved for ${data.empName} on ${date}`, true);
       document.getElementById('entry-clock-in').value  = '';
       document.getElementById('entry-clock-out').value = '';
+      document.getElementById('entry-site').selectedIndex = 0;
       document.getElementById('entry-note').value      = '';
     } else {
       showEntryResult('Error: ' + (data.error || 'Unknown error'), false);
@@ -1453,7 +1524,13 @@ async function lookupEmployee(empId) {
     const data = await res.json();
     if (data.found) {
       // Update localStorage with fresh server data
-      if (data.lastAction) saveLastAction(cleanId, data.lastAction, data.lastSite || '');
+      // Only overwrite lastSite if the server actually returned one
+      if (data.lastAction) {
+        const existing = getLastActionLocal(cleanId);
+        const site = data.lastSite || (existing ? existing.site : '');
+        saveLastAction(cleanId, data.lastAction, site);
+        data.lastSite = site; // ensure card shows correct site
+      }
       showEmployeeCard(data);
     }
   } catch {
@@ -1638,7 +1715,8 @@ async function submitClock(action) {
       showConfirmation(action, currentEmployee.name, timeStr, true, 'Saved offline - will sync when connected');
     } else {
       updateButtonStates(currentEmployee.lastAction, currentEmployee.lastSite);
-      showConfirmation(action, currentEmployee.name, timeStr, false, 'Already clocked in.');
+      showConfirmation(action, currentEmployee.name, timeStr, false,
+        action === 'ClockOut' ? 'No active Clock In found.' : 'Already clocked in. Please Clock Out first.');
     }
     updateOfflineBadge();
   } finally {
@@ -1771,7 +1849,11 @@ function saveOfflineQueue(queue) {
 function saveLastAction(empId, action, site) {
   try {
     const key  = 'acetech_last_' + empId;
-    const today = new Date().toISOString().slice(0,10);
+    // Use LOCAL calendar date (not UTC) so it matches business-day logic
+    const now   = new Date();
+    const today = now.getFullYear() + '-' +
+                  String(now.getMonth()+1).padStart(2,'0') + '-' +
+                  String(now.getDate()).padStart(2,'0');
     localStorage.setItem(key, JSON.stringify({ action, site, date: today }));
   } catch(e) {}
 }
@@ -1779,7 +1861,11 @@ function saveLastAction(empId, action, site) {
 function getLastActionLocal(empId) {
   try {
     const key  = 'acetech_last_' + empId;
-    const today = new Date().toISOString().slice(0,10);
+    // Use LOCAL calendar date to match saveLastAction
+    const now   = new Date();
+    const today = now.getFullYear() + '-' +
+                  String(now.getMonth()+1).padStart(2,'0') + '-' +
+                  String(now.getDate()).padStart(2,'0');
     const data  = JSON.parse(localStorage.getItem(key) || 'null');
     if (data && data.date === today) return data;
   } catch(e) {}
@@ -1787,19 +1873,28 @@ function getLastActionLocal(empId) {
 }
 
 function addToOfflineQueue(empId, empName, action, site, timestamp) {
-  const queue    = getOfflineQueue();
-  const todayStr = new Date().toISOString().slice(0,10);
+  const queue = getOfflineQueue();
+  // Use LOCAL date (not UTC) — matches entry.timestamp which is built from local new Date()
+  const now = new Date();
+  const todayStr = now.getFullYear() + '-' +
+                   String(now.getMonth()+1).padStart(2,'0') + '-' +
+                   String(now.getDate()).padStart(2,'0');
 
   // Check last known action — from localStorage OR from queue
   const lastKnown   = getLastActionLocal(empId);
   const todayQ      = queue.filter(e => e.empId === empId && e.timestamp && e.timestamp.startsWith(todayStr));
   const lastQueued  = todayQ.length > 0 ? todayQ[todayQ.length-1] : null;
-  // Use queue entry as priority since it's most recent
+  // Queue entry takes priority as most recent
   const effectiveLast = lastQueued ? lastQueued.action : (lastKnown ? lastKnown.action : null);
 
-  // Only block duplicate ClockIn
+  // Block duplicate ClockIn
   if (action === 'ClockIn' && effectiveLast === 'ClockIn') {
     console.warn('Duplicate offline ClockIn blocked for', empId);
+    return false;
+  }
+  // Block duplicate ClockOut (nothing to clock out from)
+  if (action === 'ClockOut' && effectiveLast !== 'ClockIn') {
+    console.warn('Offline ClockOut blocked — no open ClockIn for', empId);
     return false;
   }
 
@@ -1926,6 +2021,15 @@ setInterval(() => {
 // --------------------------------------------------
 let cachedSites = [];
 
+// Pre-load sites from localStorage so the dropdown works immediately offline
+try {
+  const _sc = localStorage.getItem('acetech_sites');
+  if (_sc) {
+    const _sp = JSON.parse(_sc);
+    if (_sp && _sp.length > 0) { cachedSites = _sp; console.log('Pre-loaded', _sp.length, 'sites from cache'); }
+  }
+} catch(e) { /* ignore */ }
+
 // Default sites for offline fallback
 const DEFAULT_SITE_LIST = [
   {code:'ISL', name:'Invest SLU'},
@@ -1960,11 +2064,13 @@ async function loadSiteDropdown() {
     const data = await res.json();
     if (data.success && data.sites && data.sites.length > 0) {
       cachedSites = data.sites;
+      // Persist to localStorage so the dropdown works after an offline page reload
+      try { localStorage.setItem('acetech_sites', JSON.stringify(cachedSites)); } catch(e) {}
       populateSiteSelect(select, cachedSites);
     }
   } catch(err) {
-    // Offline or error - default list already shown
-    cachedSites = DEFAULT_SITE_LIST;
+    // Offline or error — use localStorage cache if available, else defaults
+    if (cachedSites.length === 0) cachedSites = DEFAULT_SITE_LIST;
   }
 }
 
@@ -2089,12 +2195,23 @@ async function addEmployee() {
 
     if (data.success) {
       result.style.color = 'var(--green)';
-      result.textContent = `OK Added ${data.name} - ID: ${data.empId}`;
+      result.textContent = `✓ Added ${data.name} — ID: ${data.empId}`;
+      // Immediately add to in-memory EMPLOYEES so search works right away
+      const alreadyIn = EMPLOYEES.some(e => e.id === data.empId);
+      if (!alreadyIn) {
+        EMPLOYEES.push({ id: data.empId, name: data.name, position, nic, rate, bank, paycycle });
+        try { localStorage.setItem(EMPLOYEES_CACHE_KEY, JSON.stringify(EMPLOYEES)); } catch(e) {}
+        console.log('Instantly added', data.name, '(ID:', data.empId, ') to local EMPLOYEES array');
+      }
       // Clear form
-      ['emp-name','emp-nic','emp-rate','emp-bank'].forEach(id => {
-        document.getElementById(id).value = '';
+      ['new-emp-name','emp-nic','emp-rate','emp-bank'].forEach(id => {
+        const el = document.getElementById(id);
+        if (el) el.value = '';
       });
-      document.getElementById('new-emp-position').value = '';
+      document.getElementById('new-emp-position').selectedIndex = 0;
+      document.getElementById('emp-paycycle').selectedIndex = 0;
+      // Also refresh from server in background to get canonical data
+      loadEmployeesFromSheet();
       // Refresh list
       loadEmployeeList();
     } else {
@@ -2124,7 +2241,7 @@ async function loadEmployeeList() {
       <div style="display:flex;align-items:center;justify-content:space-between;padding:8px 4px;border-bottom:1px solid var(--border);">
         <div>
           <div style="font-weight:600;color:var(--text);">${emp.name}</div>
-          <div style="color:var(--muted);font-size:11px;">${emp.id} ? ${emp.position} ? $${parseFloat(emp.rate).toFixed(2)}/hr ? ${emp.payCycle || 'Fortnightly'}</div>
+          <div style="color:var(--muted);font-size:11px;">${emp.id} &nbsp;·&nbsp; ${emp.position} &nbsp;·&nbsp; $${parseFloat(emp.rate||0).toFixed(2)}/hr &nbsp;·&nbsp; ${emp.payCycle || 'Fortnightly'}</div>
         </div>
         <button onclick="removeEmployee('${emp.id}','${emp.name.replace(/'/g,"\'")}')"
           style="padding:4px 10px;background:rgba(218,54,51,0.15);border:1px solid rgba(218,54,51,0.3);
