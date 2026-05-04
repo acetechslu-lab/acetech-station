@@ -233,7 +233,7 @@
   .status-banner.clocked-in{background:rgba(34,197,94,0.12);border:1px solid rgba(34,197,94,0.3);color:var(--green);}
   .status-banner.clocked-out{background:rgba(100,116,139,0.12);border:1px solid rgba(100,116,139,0.3);color:var(--muted);}
   .action-buttons{display:flex;flex-direction:column;gap:10px;width:100%;}
-  .btn-action{width:100%;padding:15px;border:none;border-radius:10px;font-family:'Barlow Condensed',sans-serif;font-size:18px;font-weight:700;letter-spacing:2px;text-transform:uppercase;cursor:pointer;transition:all 0.2s;}
+  .btn-action{width:100%;padding:15px;border:none;border-radius:10px;font-family:'Barlow Condensed',sans-serif;font-size:18px;font-weight:700;letter-spacing:2px;text-transform:uppercase;cursor:pointer;transition:all 0.2s;touch-action:manipulation;}
   .btn-clock-in{background:var(--green);color:white;box-shadow:0 4px 18px rgba(34,197,94,0.3);}
   .btn-clock-in:hover{background:#16a34a;}
   .btn-clock-in:disabled{background:#1a3a28;color:#2d5a3d;box-shadow:none;cursor:not-allowed;}
@@ -1005,6 +1005,23 @@ window.addEventListener('load', () => {
   }
 });
 
+// iOS ghost-click guard: record the moment the user touches or changes the
+// site dropdown. submitClock will refuse to fire within 1200ms of this event.
+// This prevents the iOS native picker "Done" tap from triggering the Clock In
+// button that sits directly below the dropdown.
+(function attachSiteSelectGuard() {
+  const attach = () => {
+    const sel = document.getElementById('site-select');
+    if (!sel) return;
+    ['touchstart', 'mousedown', 'change'].forEach(evt =>
+      sel.addEventListener(evt, () => { lastSiteInteractionTime = Date.now(); }, { passive: true })
+    );
+  };
+  // Try immediately, then retry after DOM settles (for dynamically rendered elements)
+  attach();
+  window.addEventListener('load', attach);
+})();
+
 // --------------------------------------------------
 // PIN LOGIC
 // --------------------------------------------------
@@ -1543,6 +1560,12 @@ let entrySource    = 'Unknown';  // Tracks how employee was looked up: QR Scan, 
 let lastScanId   = null;
 let lastScanTime = 0;
 
+// iOS ghost-click guard — when user picks a site from the native picker,
+// iOS fires a phantom click at the same screen coordinates after the picker closes.
+// If the Clock In button is at those coordinates it gets triggered automatically.
+// We block any submitClock call that arrives within 1200ms of a site-select interaction.
+let lastSiteInteractionTime = 0;
+
 function lookupById()     { const id = document.getElementById('manual-id-input').value.trim().toUpperCase(); if (id) { entrySource = 'Manual ID'; lookupEmployee(id); } }
 function lookupFromName() { const id = document.getElementById('name-id-display').value.trim().toUpperCase(); if (id && id !== '-') lookupEmployee(id); }
 
@@ -1685,6 +1708,9 @@ document.addEventListener('click', e => { if (!e.target.closest('.search-wrap'))
 async function submitClock(action) {
   if (!currentEmployee) { showError(); return; }
   if (isSubmitting) return;
+  // iOS ghost-click guard: ignore any submission that arrives within 1200ms of
+  // the user interacting with the site dropdown (native picker phantom click)
+  if (Date.now() - lastSiteInteractionTime < 1200) return;
   isSubmitting = true;
 
   const btnIn  = document.getElementById('btn-clock-in');
