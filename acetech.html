@@ -5,11 +5,10 @@
 <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no">
 <title>ACEtech - Attendance Station</title>
 
-<meta name="theme-color" content="#C9A227">
+<meta name="theme-color" content="#0a0f1a">
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
 <meta name="apple-mobile-web-app-title" content="ACEtech">
-<meta name="theme-color" content="#0a0f1a">
 <meta name="mobile-web-app-capable" content="yes">
 <link href="https://fonts.googleapis.com/css2?family=Barlow+Condensed:wght@300;400;600;700;800&family=Barlow:wght@300;400;500;600&display=swap" rel="stylesheet">
 <script src="https://cdnjs.cloudflare.com/ajax/libs/html5-qrcode/2.3.8/html5-qrcode.min.js"></script>
@@ -184,7 +183,6 @@
   }
   #qr-reader{width:100%!important;border:none!important;}
   #qr-reader video{width:100%!important;border-radius:10px;}
-  #qr-reader img{display:none!important;}
   #qr-reader img{display:none!important;}
   /* Let library render naturally */
   .scanner-overlay{position:absolute;inset:0;pointer-events:none;display:flex;align-items:center;justify-content:center;}
@@ -831,7 +829,7 @@
 
   <footer>
     <div class="footer-note" style="color:#8b949e;font-size:12px;font-weight:500;">For assistance, contact your site supervisor</div>
-<div id="cache-status" style="font-size:10px;color:#444;"></div>
+<div id="cache-status" style="display:none;"></div>
     <div class="footer-brand">ACEtech Engineering & Construction</div>
   </footer>
 </div>
@@ -1253,24 +1251,24 @@ function changeAdminPass() {
 // CLOCK
 // --------------------------------------------------
 function updateClock() {
-  const now = new Date();
-  // Update big clock display
-  const padC = n => String(n).padStart(2,'0');
+  const now    = new Date();
+  const pad    = n => String(n).padStart(2,'0');
+  const days   = ['Sunday','Monday','Tuesday','Wednesday','Thursday','Friday','Saturday'];
+  const months = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
+  const timeStr = pad(now.getHours())+':'+pad(now.getMinutes())+':'+pad(now.getSeconds());
+  const dateStr = days[now.getDay()]+', '+months[now.getMonth()]+' '+now.getDate()+', '+now.getFullYear();
+
+  // Big clock panel (QR tab, shown when camera is off)
   const bigClock = document.getElementById('clock-big');
   const bigDate  = document.getElementById('date-big');
-  if (bigClock) bigClock.textContent = padC(now.getHours())+':'+padC(now.getMinutes())+':'+padC(now.getSeconds());
-  if (bigDate) {
-    const days   = ['Sunday','Monday','Tuesday','Wednesday','Thursday','Friday','Saturday'];
-    const months = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
-    bigDate.textContent = days[now.getDay()]+', '+months[now.getMonth()]+' '+now.getDate()+', '+now.getFullYear();
-  }
-  const days = ['Sunday','Monday','Tuesday','Wednesday','Thursday','Friday','Saturday'];
-  const months = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
-  const pad = n => String(n).padStart(2,'0');
+  if (bigClock) bigClock.textContent = timeStr;
+  if (bigDate)  bigDate.textContent  = dateStr;
+
+  // Header clock elements (present on wider layouts)
   const ctEl = document.getElementById('clock-time');
-  if (ctEl) ctEl.textContent = `${pad(now.getHours())}:${pad(now.getMinutes())}:${pad(now.getSeconds())}`;
   const cdEl = document.getElementById('clock-date');
-  if (cdEl) cdEl.textContent = `${days[now.getDay()]}, ${months[now.getMonth()]} ${now.getDate()}, ${now.getFullYear()}`;
+  if (ctEl) ctEl.textContent = timeStr;
+  if (cdEl) cdEl.textContent = dateStr;
 }
 setInterval(updateClock, 1000);
 updateClock();
@@ -1545,10 +1543,6 @@ function stopScanner() {
   }
 }
 
-function cancelFullscreenScan() {
-  stopScanner();
-}
-
 // --------------------------------------------------
 // EMPLOYEE LOOKUP
 // --------------------------------------------------
@@ -1698,9 +1692,6 @@ function selectEmployee(id, name) {
 function handleNameKey(e) { if (e.key === 'Escape') document.getElementById('name-results').classList.remove('open'); }
 document.addEventListener('click', e => { if (!e.target.closest('.search-wrap')) document.getElementById('name-results').classList.remove('open'); });
 
-// --------------------------------------------------
-// CLOCK IN / OUT
-// --------------------------------------------------
 // --------------------------------------------------
 // CLOCK IN / OUT
 // --------------------------------------------------
