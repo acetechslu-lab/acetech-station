@@ -2167,7 +2167,10 @@ async function loadSiteDropdown() {
       cachedSites = data.sites;
       // Persist to localStorage so the dropdown works after an offline page reload
       try { localStorage.setItem('acetech_sites', JSON.stringify(cachedSites)); } catch(e) {}
+      // Preserve whatever the user may have already selected before the fetch returned
+      const prev = select.value;
       populateSiteSelect(select, cachedSites);
+      if (prev && [...select.options].some(o => o.value === prev)) select.value = prev;
     }
   } catch(err) {
     // Offline or error — use localStorage cache if available, else defaults
