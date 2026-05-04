@@ -1479,16 +1479,24 @@ function startScanner() {
     { facingMode: "environment" },
     config,
     (decodedText) => {
-      if (isSubmitting) return;
+      // Debounce: ignore same QR code scanned within 30 seconds
+      const now = Date.now();
       let empId = decodedText.trim();
       try {
         const url = new URL(decodedText.trim());
         const id  = url.searchParams.get('id');
         if (id) empId = id;
       } catch(e) { /* raw ID value */ }
+      empId = empId.trim().toUpperCase();
+
+      if (isSubmitting) return;
+      if (empId === lastScanId && (now - lastScanTime) < 30000) return; // Duplicate scan within 30s
+
+      lastScanId   = empId;
+      lastScanTime = now;
       stopScanner();
       entrySource = 'QR Scan';
-      lookupEmployee(empId.toUpperCase());
+      lookupEmployee(empId);
     },
     () => {}
   ).then(() => {
@@ -1530,6 +1538,10 @@ function cancelFullscreenScan() {
 let currentEmployee = null;
 let isSubmitting   = false;  // Global lock - prevents any concurrent clock submissions
 let entrySource    = 'Unknown';  // Tracks how employee was looked up: QR Scan, Manual ID, Name Search
+
+// QR scan debounce — prevents double-scan of same code within 30 seconds
+let lastScanId   = null;
+let lastScanTime = 0;
 
 function lookupById()     { const id = document.getElementById('manual-id-input').value.trim().toUpperCase(); if (id) { entrySource = 'Manual ID'; lookupEmployee(id); } }
 function lookupFromName() { const id = document.getElementById('name-id-display').value.trim().toUpperCase(); if (id && id !== '-') lookupEmployee(id); }
@@ -1878,7 +1890,10 @@ function resetStation() {
   // Reset button opacity and submission lock
   document.getElementById('btn-clock-in').style.opacity  = '1';
   document.getElementById('btn-clock-out').style.opacity = '1';
-  isSubmitting = false;
+  isSubmitting  = false;
+  lastScanId    = null;  // Clear QR debounce so next employee can scan immediately
+  lastScanTime  = 0;
+  entrySource   = 'Unknown';
   hideError();
 }
 
