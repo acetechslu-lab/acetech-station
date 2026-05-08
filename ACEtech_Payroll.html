@@ -619,6 +619,12 @@ function getFortnightlyPeriod(offset = 0) {
   return { start, end, payDate: end };
 }
 
+// Alias used by Site Earnings tab — returns ISO string dates
+function getFnPeriod(offset = 0) {
+  const p = getFortnightlyPeriod(offset);
+  return { start: fmtISO(p.start), end: fmtISO(p.end) };
+}
+
 function getMonthlyPeriod(offset = 0) {
   const today = new Date();
   let m = today.getMonth() + offset; // 0-based
