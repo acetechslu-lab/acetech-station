@@ -487,7 +487,10 @@
     <!-- ── HEADER ── -->
     <div class="admin-title" style="padding:20px 28px 0;margin-bottom:0;">
       ⚙️ Admin Panel
-      <button class="auth-btn secondary" style="width:auto;padding:6px 14px;font-size:12px;" onclick="closeAdmin()">✕ Close</button>
+      <div style="display:flex;gap:8px;align-items:center;">
+        <button class="auth-btn secondary" style="width:auto;padding:6px 14px;font-size:12px;background:var(--gold);color:#0a0f1a;border-color:var(--gold);" onclick="window.open('ACEtech_Payroll.html','_blank')">💰 Payroll Module</button>
+        <button class="auth-btn secondary" style="width:auto;padding:6px 14px;font-size:12px;" onclick="closeAdmin()">✕ Close</button>
+      </div>
     </div>
 
     <!-- ── TABS ── -->
@@ -853,7 +856,7 @@
 // --------------------------------------------------
 // CONFIG - change these before deploying
 // --------------------------------------------------
-const DEFAULT_PIN        = "5711";   // ? change this to your PIN
+const DEFAULT_PIN        = "1234";   // ? change this to your PIN
 const DEFAULT_ADMIN_PASS = "acetech2025admin"; // ? change this to your admin password
 const AUTO_LOCK_MINUTES  = 60;
 const WEB_APP_URL        = "https://script.google.com/macros/s/AKfycbzG_emTfDuxvwE6WWLa7vnWn2_gNoTmv3fOe8NwoV1mMr8xYQeV3ORLmRD6pVs9qBWM/exec";
@@ -2498,4 +2501,3 @@ function printQRCards() {
 </script>
 </body>
 </html>
-  
