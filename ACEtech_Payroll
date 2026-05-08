@@ -1,0 +1,1441 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1">
+<title>ACEtech — Payroll</title>
+<meta name="theme-color" content="#0a0f1a">
+<link href="https://fonts.googleapis.com/css2?family=Barlow+Condensed:wght@300;400;600;700;800&family=Barlow:wght@300;400;500;600&display=swap" rel="stylesheet">
+<style>
+/* ── RESET & VARS ────────────────────────────────────────────────────── */
+:root{
+  --bg:#0a0f1a;--surface:#111827;--card:#1a2235;--border:#2a3a55;
+  --gold:#C9A227;--gold-dim:#8a6c18;--green:#22c55e;--red:#ef4444;
+  --orange:#f97316;--text:#f1f5f9;--muted:#64748b;--white:#ffffff;
+}
+*{box-sizing:border-box;margin:0;padding:0;}
+html,body{background:var(--bg);color:var(--text);font-family:'Barlow',sans-serif;min-height:100%;}
+
+/* ── AUTH OVERLAY ────────────────────────────────────────────────────── */
+#auth-overlay{position:fixed;inset:0;z-index:200;background:var(--bg);display:flex;align-items:center;justify-content:center;}
+#auth-overlay::before{content:'';position:fixed;inset:0;background-image:linear-gradient(rgba(201,162,39,0.04) 1px,transparent 1px),linear-gradient(90deg,rgba(201,162,39,0.04) 1px,transparent 1px);background-size:40px 40px;pointer-events:none;}
+.auth-box{background:var(--card);border:1px solid var(--border);border-radius:20px;padding:44px 40px;text-align:center;width:90%;max-width:380px;position:relative;z-index:1;}
+.auth-logo{font-family:'Barlow Condensed',sans-serif;font-size:28px;font-weight:800;color:var(--white);margin-bottom:4px;}
+.auth-logo span{color:var(--gold);}
+.auth-sub{font-size:11px;color:var(--muted);letter-spacing:2px;text-transform:uppercase;margin-bottom:28px;}
+.auth-input{width:100%;background:var(--surface);border:1px solid var(--border);border-radius:10px;padding:13px 16px;color:var(--text);font-size:16px;outline:none;margin-bottom:14px;transition:border-color .2s;}
+.auth-input:focus{border-color:var(--gold);}
+.auth-input.error{border-color:var(--red);}
+.auth-btn{width:100%;padding:14px;background:var(--gold);color:#0a0f1a;border:none;border-radius:10px;font-family:'Barlow Condensed',sans-serif;font-size:17px;font-weight:700;letter-spacing:2px;text-transform:uppercase;cursor:pointer;transition:background .2s;}
+.auth-btn:hover{background:#e0b530;}
+.auth-error{color:var(--red);font-size:13px;margin-top:8px;display:none;}
+.auth-error.show{display:block;}
+
+/* ── HEADER ──────────────────────────────────────────────────────────── */
+header{display:flex;align-items:center;justify-content:space-between;padding:12px 24px;border-bottom:1px solid var(--border);background:rgba(17,24,39,0.95);backdrop-filter:blur(8px);position:sticky;top:0;z-index:50;}
+.logo-block{display:flex;align-items:center;gap:10px;}
+.logo-icon{width:38px;height:38px;background:var(--gold);border-radius:8px;display:flex;align-items:center;justify-content:center;font-family:'Barlow Condensed',sans-serif;font-weight:800;font-size:15px;color:#0a0f1a;}
+.logo-text{font-family:'Barlow Condensed',sans-serif;font-weight:700;font-size:20px;color:var(--white);}
+.logo-text span{color:var(--gold);}
+.logo-sub{font-size:10px;color:var(--muted);letter-spacing:2px;text-transform:uppercase;margin-top:1px;}
+.header-right{display:flex;gap:10px;align-items:center;}
+.hdr-btn{background:transparent;border:1px solid var(--border);color:var(--muted);border-radius:8px;padding:7px 14px;font-size:12px;font-weight:600;cursor:pointer;transition:all .2s;font-family:'Barlow',sans-serif;}
+.hdr-btn:hover{border-color:var(--gold);color:var(--gold);}
+.hdr-btn.primary{background:var(--gold);color:#0a0f1a;border-color:var(--gold);}
+.hdr-btn.primary:hover{background:#e0b530;}
+.hdr-btn.danger{border-color:rgba(239,68,68,.4);color:var(--red);}
+.hdr-btn.danger:hover{background:rgba(239,68,68,.1);}
+
+/* ── LAYOUT ──────────────────────────────────────────────────────────── */
+.page{padding:24px 28px;max-width:1600px;margin:0 auto;}
+
+/* ── PERIOD CONTROL PANEL ────────────────────────────────────────────── */
+.control-panel{background:var(--card);border:1px solid var(--border);border-radius:14px;padding:20px 24px;margin-bottom:20px;display:flex;flex-wrap:wrap;align-items:center;gap:16px;}
+.cp-label{font-size:11px;text-transform:uppercase;letter-spacing:1.5px;color:var(--muted);display:block;margin-bottom:4px;}
+.period-type-toggle{display:flex;background:var(--surface);border:1px solid var(--border);border-radius:8px;padding:3px;gap:3px;}
+.ptt-btn{padding:7px 18px;border:none;border-radius:6px;background:transparent;color:var(--muted);font-family:'Barlow Condensed',sans-serif;font-size:13px;font-weight:600;letter-spacing:.5px;text-transform:uppercase;cursor:pointer;transition:all .2s;}
+.ptt-btn.active{background:var(--gold);color:#0a0f1a;}
+.period-nav{display:flex;align-items:center;gap:10px;}
+.nav-arrow{width:32px;height:32px;background:var(--surface);border:1px solid var(--border);border-radius:8px;color:var(--muted);font-size:16px;cursor:pointer;display:flex;align-items:center;justify-content:center;transition:all .2s;}
+.nav-arrow:hover{border-color:var(--gold);color:var(--gold);}
+.period-display{font-family:'Barlow Condensed',sans-serif;font-size:18px;font-weight:700;color:var(--white);letter-spacing:.5px;min-width:220px;text-align:center;}
+.period-dates{font-size:11px;color:var(--muted);text-align:center;margin-top:1px;}
+.load-btn{padding:10px 24px;background:var(--gold);color:#0a0f1a;border:none;border-radius:8px;font-family:'Barlow Condensed',sans-serif;font-size:15px;font-weight:700;letter-spacing:1px;text-transform:uppercase;cursor:pointer;transition:background .2s;}
+.load-btn:hover{background:#e0b530;}
+.load-btn:disabled{background:var(--gold-dim);cursor:not-allowed;}
+.cp-status{font-size:13px;color:var(--muted);margin-left:auto;}
+.cp-status.ok{color:var(--green);}
+.cp-status.err{color:var(--red);}
+
+/* ── SUMMARY STRIP ───────────────────────────────────────────────────── */
+.summary-strip{display:grid;grid-template-columns:repeat(auto-fit,minmax(160px,1fr));gap:12px;margin-bottom:20px;}
+.sum-card{background:var(--card);border:1px solid var(--border);border-radius:10px;padding:14px 18px;}
+.sum-label{font-size:10px;text-transform:uppercase;letter-spacing:1.5px;color:var(--muted);margin-bottom:4px;}
+.sum-value{font-family:'Barlow Condensed',sans-serif;font-size:24px;font-weight:700;color:var(--white);}
+.sum-value.green{color:var(--green);}
+.sum-value.gold{color:var(--gold);}
+.sum-value.red{color:var(--red);}
+
+/* ── ACTION BAR ──────────────────────────────────────────────────────── */
+.action-bar{display:flex;gap:10px;margin-bottom:16px;flex-wrap:wrap;align-items:center;}
+.action-bar .spacer{flex:1;}
+.act-btn{padding:9px 18px;border:1px solid var(--border);border-radius:8px;background:var(--surface);color:var(--muted);font-size:13px;font-weight:600;cursor:pointer;transition:all .2s;font-family:'Barlow',sans-serif;display:flex;align-items:center;gap:6px;}
+.act-btn:hover{border-color:var(--gold);color:var(--gold);}
+.act-btn.primary{background:var(--gold);color:#0a0f1a;border-color:var(--gold);}
+.act-btn.primary:hover{background:#e0b530;}
+.act-btn.green{background:rgba(34,197,94,.12);border-color:rgba(34,197,94,.4);color:var(--green);}
+.act-btn.green:hover{background:rgba(34,197,94,.2);}
+.act-btn:disabled{opacity:.4;cursor:not-allowed;}
+.save-notice{font-size:12px;color:var(--muted);display:none;}
+.save-notice.show{display:block;}
+
+/* ── PAYROLL TABLE ───────────────────────────────────────────────────── */
+.table-wrap{overflow-x:auto;border-radius:12px;border:1px solid var(--border);}
+table.payroll{width:100%;border-collapse:collapse;font-size:13px;min-width:1300px;}
+table.payroll thead th{
+  background:var(--surface);color:var(--muted);font-size:10px;text-transform:uppercase;
+  letter-spacing:1px;padding:10px 10px;text-align:right;white-space:nowrap;border-bottom:1px solid var(--border);
+  position:sticky;top:0;z-index:5;
+}
+table.payroll thead th:first-child,
+table.payroll thead th:nth-child(2),
+table.payroll thead th:nth-child(3){text-align:left;}
+table.payroll thead .th-group{text-align:center;background:rgba(201,162,39,0.06);border-bottom:2px solid var(--gold);color:var(--gold-dim);font-size:9px;letter-spacing:1.5px;}
+table.payroll tbody tr{border-bottom:1px solid rgba(42,58,85,.5);transition:background .15s;}
+table.payroll tbody tr:hover{background:rgba(201,162,39,.04);}
+table.payroll tbody tr:last-child{border-bottom:none;}
+table.payroll td{padding:9px 10px;text-align:right;color:var(--text);vertical-align:middle;}
+table.payroll td:first-child,
+table.payroll td:nth-child(2),
+table.payroll td:nth-child(3){text-align:left;}
+table.payroll td.emp-id{font-family:monospace;font-size:11px;color:var(--gold);letter-spacing:1px;}
+table.payroll td.emp-name{font-weight:600;color:var(--white);}
+table.payroll td.emp-pos{color:var(--muted);font-size:12px;}
+table.payroll td.gross-val{font-weight:700;color:var(--gold);}
+table.payroll td.net-val{font-weight:700;color:var(--green);}
+table.payroll td.ded-val{color:var(--red);}
+table.payroll td.zero{color:var(--muted);}
+table.payroll tfoot td{background:var(--surface);font-weight:700;border-top:2px solid var(--gold);padding:10px 10px;}
+table.payroll tfoot td.lbl{text-align:left;color:var(--gold);font-family:'Barlow Condensed',sans-serif;font-size:14px;letter-spacing:1px;}
+table.payroll tfoot td.gross-tot{color:var(--gold);}
+table.payroll tfoot td.net-tot{color:var(--green);}
+table.payroll tfoot td.ded-tot{color:var(--red);}
+
+/* Editable cells */
+.edit-cell{background:rgba(201,162,39,.06);border:1px solid rgba(201,162,39,.2);border-radius:5px;padding:4px 8px;font-size:13px;color:var(--text);width:80px;text-align:right;outline:none;font-family:'Barlow',sans-serif;}
+.edit-cell:focus{border-color:var(--gold);background:rgba(201,162,39,.12);}
+
+/* Per-employee print btn */
+.slip-btn{background:none;border:1px solid var(--border);border-radius:5px;padding:3px 8px;color:var(--muted);font-size:11px;cursor:pointer;transition:all .15s;white-space:nowrap;}
+.slip-btn:hover{border-color:var(--gold);color:var(--gold);}
+
+/* ── PAYSLIP MODAL ───────────────────────────────────────────────────── */
+#slip-modal{display:none;position:fixed;inset:0;z-index:300;background:rgba(10,15,26,.95);align-items:center;justify-content:center;overflow-y:auto;padding:20px;}
+#slip-modal.show{display:flex;}
+.slip-inner{width:100%;max-width:680px;margin:auto;}
+.slip-close{position:fixed;top:16px;right:20px;background:var(--surface);border:1px solid var(--border);color:var(--muted);border-radius:50%;width:38px;height:38px;display:flex;align-items:center;justify-content:center;cursor:pointer;font-size:18px;z-index:400;transition:all .2s;}
+.slip-close:hover{color:var(--text);border-color:var(--muted);}
+
+/* ── EMPTY / LOADING STATE ───────────────────────────────────────────── */
+.empty-state{padding:60px 20px;text-align:center;color:var(--muted);}
+.empty-state svg{width:48px;height:48px;fill:var(--muted);margin-bottom:12px;opacity:.5;}
+.spinner{display:inline-block;width:18px;height:18px;border:2px solid rgba(201,162,39,.3);border-top-color:var(--gold);border-radius:50%;animation:spin .7s linear infinite;vertical-align:middle;margin-right:8px;}
+@keyframes spin{to{transform:rotate(360deg)}}
+
+/* ── PRINT STYLES (payslips) ─────────────────────────────────────────── */
+@media print{
+  body *{visibility:hidden;}
+  #print-zone,#print-zone *{visibility:visible;}
+  #print-zone{position:fixed;inset:0;background:#fff;color:#000;}
+  .no-print{display:none!important;}
+  .payslip-page{page-break-after:always;padding:20mm 20mm;font-family:'Barlow',Arial,sans-serif;}
+  .payslip-page:last-child{page-break-after:avoid;}
+}
+#print-zone{display:none;}
+
+/* PAYSLIP CARD — used both in modal and print zone */
+.payslip-card{background:#fff;color:#1a1a2e;border-radius:12px;padding:32px;font-size:13px;line-height:1.5;width:100%;box-shadow:0 4px 24px rgba(0,0,0,.3);}
+.ps-header{display:flex;justify-content:space-between;align-items:flex-start;border-bottom:3px solid #C9A227;padding-bottom:16px;margin-bottom:20px;}
+.ps-company{font-family:'Barlow Condensed',sans-serif;font-size:26px;font-weight:800;color:#0a0f1a;letter-spacing:1px;}
+.ps-company span{color:#C9A227;}
+.ps-company-sub{font-size:11px;color:#666;letter-spacing:2px;text-transform:uppercase;}
+.ps-period{text-align:right;}
+.ps-period-label{font-size:10px;text-transform:uppercase;letter-spacing:1.5px;color:#888;}
+.ps-period-value{font-family:'Barlow Condensed',sans-serif;font-size:16px;font-weight:700;color:#1a1a2e;}
+.ps-emp{display:grid;grid-template-columns:1fr 1fr;gap:6px 20px;background:#f5f5f5;border-radius:8px;padding:14px 16px;margin-bottom:18px;}
+.ps-field{display:flex;flex-direction:column;gap:2px;}
+.ps-field-label{font-size:9px;text-transform:uppercase;letter-spacing:1.5px;color:#888;}
+.ps-field-value{font-weight:600;color:#1a1a2e;font-size:13px;}
+.ps-sections{display:grid;grid-template-columns:1fr 1fr;gap:16px;margin-bottom:18px;}
+.ps-section h4{font-family:'Barlow Condensed',sans-serif;font-size:13px;font-weight:700;text-transform:uppercase;letter-spacing:1px;color:#666;border-bottom:1px solid #ddd;padding-bottom:6px;margin-bottom:10px;}
+.ps-row{display:flex;justify-content:space-between;padding:4px 0;border-bottom:1px solid #f0f0f0;font-size:12px;}
+.ps-row:last-child{border-bottom:none;}
+.ps-row.bold{font-weight:700;}
+.ps-row.gold{color:#8a6c18;font-weight:700;}
+.ps-row.red{color:#dc2626;}
+.ps-summary{background:#f9f9f9;border-radius:8px;padding:16px;margin-bottom:18px;display:grid;grid-template-columns:1fr 1fr 1fr;gap:12px;}
+.ps-sum-item{text-align:center;}
+.ps-sum-label{font-size:9px;text-transform:uppercase;letter-spacing:1px;color:#888;display:block;}
+.ps-sum-amount{font-family:'Barlow Condensed',sans-serif;font-size:20px;font-weight:800;color:#1a1a2e;}
+.ps-sum-amount.green{color:#15803d;}
+.ps-sum-amount.red{color:#dc2626;}
+.ps-footer{display:flex;justify-content:space-between;align-items:center;border-top:1px solid #ddd;padding-top:14px;margin-top:6px;}
+.ps-sig{font-size:11px;color:#666;}
+.ps-sig strong{display:block;font-size:12px;color:#1a1a2e;margin-top:2px;}
+.ps-stamp{font-family:'Barlow Condensed',sans-serif;font-size:10px;letter-spacing:2px;text-transform:uppercase;color:#C9A227;font-weight:700;}
+
+/* Modal payslip wrapper */
+.slip-nav{display:flex;justify-content:space-between;align-items:center;margin-bottom:12px;}
+.slip-nav-btn{background:var(--surface);border:1px solid var(--border);color:var(--muted);border-radius:8px;padding:7px 16px;font-size:13px;cursor:pointer;transition:all .2s;}
+.slip-nav-btn:hover{border-color:var(--gold);color:var(--gold);}
+.slip-nav-btn:disabled{opacity:.3;cursor:not-allowed;}
+.slip-counter{font-size:13px;color:var(--muted);}
+.slip-actions{display:flex;gap:8px;margin-top:12px;justify-content:flex-end;}
+
+/* ── Tab navigation ──────────────────────────────────────────────────── */
+.tab-nav{display:flex;gap:4px;padding:0 24px;background:var(--card);border-bottom:1px solid var(--border);}
+.tab-btn{padding:12px 20px;background:none;border:none;border-bottom:3px solid transparent;color:var(--muted);font-family:'Barlow Condensed',sans-serif;font-size:15px;font-weight:600;letter-spacing:1px;text-transform:uppercase;cursor:pointer;transition:all .2s;margin-bottom:-1px;}
+.tab-btn:hover{color:var(--text);}
+.tab-btn.active{color:var(--gold);border-bottom-color:var(--gold);}
+.tab-pane{display:none;}
+.tab-pane.active{display:block;}
+
+/* ── Site Earnings table ─────────────────────────────────────────────── */
+table.se-table{width:100%;border-collapse:collapse;font-size:12px;min-width:900px;}
+table.se-table thead th{padding:9px 10px;background:var(--surface);color:var(--muted);font-size:10px;text-transform:uppercase;letter-spacing:1px;border-bottom:2px solid var(--border);text-align:right;white-space:nowrap;}
+table.se-table thead th.lh{text-align:left;}
+table.se-table thead th.site-hdr{background:rgba(201,162,39,.07);color:var(--gold-dim);border-bottom:2px solid var(--gold);}
+table.se-table tbody tr{border-bottom:1px solid rgba(42,58,85,.4);transition:background .15s;}
+table.se-table tbody tr:hover{background:rgba(201,162,39,.04);}
+table.se-table td{padding:8px 10px;text-align:right;color:var(--text);}
+table.se-table td.lh{text-align:left;}
+table.se-table td.emp-id{font-family:monospace;font-size:11px;color:var(--gold);}
+table.se-table td.emp-name{font-weight:600;color:var(--white);}
+table.se-table td.zero{color:var(--muted);}
+table.se-table td.gross{font-weight:700;color:var(--gold);}
+table.se-table tfoot td{background:var(--surface);font-weight:700;border-top:2px solid var(--gold);padding:9px 10px;text-align:right;color:var(--white);}
+table.se-table tfoot td.lbl{text-align:left;color:var(--gold);font-family:'Barlow Condensed',sans-serif;letter-spacing:1px;}
+
+/* ── Annual Summary ──────────────────────────────────────────────────── */
+.annual-grid{display:grid;grid-template-columns:1fr 1fr;gap:24px;}
+@media(max-width:900px){.annual-grid{grid-template-columns:1fr;}}
+.annual-panel{background:var(--card);border:1px solid var(--border);border-radius:12px;overflow:hidden;}
+.annual-panel-hdr{padding:14px 18px;background:var(--surface);border-bottom:1px solid var(--border);font-family:'Barlow Condensed',sans-serif;font-size:15px;font-weight:700;color:var(--white);letter-spacing:1px;text-transform:uppercase;}
+table.ann-table{width:100%;border-collapse:collapse;font-size:12px;}
+table.ann-table thead th{padding:8px 10px;background:rgba(10,15,26,.6);color:var(--muted);font-size:10px;letter-spacing:1px;text-transform:uppercase;text-align:right;white-space:nowrap;border-bottom:1px solid var(--border);}
+table.ann-table thead th:first-child{text-align:left;}
+table.ann-table thead th.site-hdr{color:var(--gold-dim);}
+table.ann-table tbody tr{border-bottom:1px solid rgba(42,58,85,.3);}
+table.ann-table tbody tr:hover{background:rgba(201,162,39,.04);}
+table.ann-table td{padding:7px 10px;text-align:right;font-size:12px;color:var(--text);}
+table.ann-table td:first-child{text-align:left;color:var(--muted);}
+table.ann-table td.tot{font-weight:700;color:var(--gold);}
+table.ann-table td.zero{color:rgba(255,255,255,.2);}
+table.ann-table tfoot td{background:var(--surface);font-weight:700;border-top:2px solid var(--gold);padding:8px 10px;text-align:right;color:var(--gold);}
+table.ann-table tfoot td:first-child{text-align:left;}
+.se-controls{display:flex;align-items:center;gap:12px;flex-wrap:wrap;}
+.year-nav{display:flex;align-items:center;gap:8px;}
+.year-display{font-family:'Barlow Condensed',sans-serif;font-size:22px;font-weight:700;color:var(--white);min-width:60px;text-align:center;}
+.push-btn{padding:8px 16px;background:rgba(42,58,85,.8);border:1px solid var(--border);color:var(--text);border-radius:8px;font-size:12px;cursor:pointer;transition:all .2s;}
+.push-btn:hover{border-color:var(--gold);color:var(--gold);}
+.push-btn.success{border-color:var(--green);color:var(--green);}
+</style>
+</head>
+<body>
+
+<!-- ══════════════════════════════════════════════════════════════════════
+     AUTH GATE
+══════════════════════════════════════════════════════════════════════ -->
+<div id="auth-overlay">
+  <div class="auth-box">
+    <div class="auth-logo">ACE<span>tech</span></div>
+    <div class="auth-sub">Payroll Administration</div>
+    <input type="password" class="auth-input" id="auth-pass" placeholder="Admin Password"
+      onkeydown="if(event.key==='Enter')doAuth()">
+    <button class="auth-btn" onclick="doAuth()">Unlock Payroll</button>
+    <div class="auth-error" id="auth-error">Incorrect password</div>
+  </div>
+</div>
+
+<!-- ══════════════════════════════════════════════════════════════════════
+     MAIN APP
+══════════════════════════════════════════════════════════════════════ -->
+<div id="app" style="display:none;">
+
+<header>
+  <div class="logo-block">
+    <div class="logo-icon">AC</div>
+    <div>
+      <div class="logo-text">ACE<span>tech</span></div>
+      <div class="logo-sub">Payroll Module</div>
+    </div>
+  </div>
+  <div class="header-right">
+    <button class="hdr-btn" onclick="openBankingEditor()">⚙ Employee Banking</button>
+    <button class="hdr-btn primary" onclick="exportBankCSV()" id="csv-btn" disabled>⬇ Export Bank CSV</button>
+    <button class="hdr-btn" onclick="window.location.href='index.html'">← Attendance App</button>
+  </div>
+</header>
+
+<!-- Tab navigation -->
+<nav class="tab-nav">
+  <button class="tab-btn active" id="tab-payroll-btn" onclick="switchTab('payroll')">💰 Payroll</button>
+  <button class="tab-btn" id="tab-site-btn"    onclick="switchTab('site')">📊 Site Earnings</button>
+  <button class="tab-btn" id="tab-annual-btn"  onclick="switchTab('annual')">📅 Annual Summary</button>
+</nav>
+
+<!-- ═══════════════════ TAB: PAYROLL (existing content) ═══════════════ -->
+<div id="tab-payroll" class="tab-pane active">
+<div class="page">
+
+  <!-- Period Control -->
+  <div class="control-panel">
+    <div>
+      <div class="cp-label">Pay Cycle</div>
+      <div class="period-type-toggle">
+        <button class="ptt-btn active" id="btn-fn" onclick="setPeriodType('Fortnightly')">Fortnightly</button>
+        <button class="ptt-btn" id="btn-mo" onclick="setPeriodType('Monthly')">Monthly</button>
+      </div>
+    </div>
+    <div>
+      <div class="cp-label">Period</div>
+      <div class="period-nav">
+        <button class="nav-arrow" onclick="shiftPeriod(-1)">&#8249;</button>
+        <div>
+          <div class="period-display" id="period-label">Loading…</div>
+          <div class="period-dates" id="period-dates"></div>
+        </div>
+        <button class="nav-arrow" onclick="shiftPeriod(1)">&#8250;</button>
+      </div>
+    </div>
+    <div>
+      <div class="cp-label">Pay Date</div>
+      <div style="font-family:'Barlow Condensed',sans-serif;font-size:18px;font-weight:700;color:var(--white);" id="pay-date-display">—</div>
+    </div>
+    <button class="load-btn" onclick="loadPayroll()" id="load-btn">Load Payroll</button>
+    <div class="cp-status" id="cp-status"></div>
+  </div>
+
+  <!-- Summary Strip -->
+  <div class="summary-strip" id="summary-strip" style="display:none;">
+    <div class="sum-card"><div class="sum-label">Employees</div><div class="sum-value" id="sum-emp">0</div></div>
+    <div class="sum-card"><div class="sum-label">Total Reg Hrs</div><div class="sum-value" id="sum-reg">0</div></div>
+    <div class="sum-card"><div class="sum-label">Total OT Hrs</div><div class="sum-value gold" id="sum-ot">0</div></div>
+    <div class="sum-card"><div class="sum-label">Total Gross</div><div class="sum-value gold" id="sum-gross">$0.00</div></div>
+    <div class="sum-card"><div class="sum-label">Total Deductions</div><div class="sum-value red" id="sum-ded">$0.00</div></div>
+    <div class="sum-card"><div class="sum-label">Total Net Pay</div><div class="sum-value green" id="sum-net">$0.00</div></div>
+  </div>
+
+  <!-- Action Bar -->
+  <div class="action-bar" id="action-bar" style="display:none;">
+    <button class="act-btn" onclick="saveAdjustments()" id="save-adj-btn">💾 Save Adjustments</button>
+    <span class="save-notice" id="save-notice">✓ Saved</span>
+    <div class="spacer"></div>
+    <button class="act-btn green" onclick="showAllSlips()">🖨 Print All Payslips</button>
+    <button class="act-btn primary" onclick="exportBankCSV()">⬇ Export Bank CSV</button>
+  </div>
+
+  <!-- Payroll Table -->
+  <div id="table-area">
+    <div class="empty-state" id="empty-msg">
+      <svg viewBox="0 0 24 24"><path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm-1 15v-4H7l5-8v4h4l-5 8z"/></svg>
+      <p>Select a period and click <strong>Load Payroll</strong> to begin.</p>
+    </div>
+    <div class="table-wrap" id="table-wrap" style="display:none;">
+      <table class="payroll" id="payroll-table">
+        <thead>
+          <tr>
+            <th rowspan="2" style="text-align:left;min-width:90px;">EMP #</th>
+            <th rowspan="2" style="text-align:left;min-width:160px;">Name</th>
+            <th rowspan="2" style="text-align:left;min-width:90px;">Position</th>
+            <th rowspan="2">Rate/Hr</th>
+            <th rowspan="2">Days</th>
+            <th rowspan="2">Reg Hrs</th>
+            <th rowspan="2">OT Hrs</th>
+            <th class="th-group" colspan="5">EARNINGS</th>
+            <th rowspan="2" style="color:var(--gold)">GROSS</th>
+            <th class="th-group" colspan="6">DEDUCTIONS</th>
+            <th rowspan="2" style="color:var(--green)">NET PAY</th>
+            <th rowspan="2">Payslip</th>
+          </tr>
+          <tr>
+            <th>Basic Pay</th>
+            <th>OT Pay</th>
+            <th>Allow.</th>
+            <th>Bonus</th>
+            <th>Back Pay</th>
+            <th>NIC 5%</th>
+            <th>PAYE</th>
+            <th>Health</th>
+            <th>Sal.Adv.</th>
+            <th>Loan</th>
+            <th>Other</th>
+          </tr>
+        </thead>
+        <tbody id="payroll-tbody"></tbody>
+        <tfoot id="payroll-tfoot"></tfoot>
+      </table>
+    </div>
+  </div>
+
+</div><!-- .page -->
+</div><!-- #tab-payroll -->
+
+<!-- ═══════════════════ TAB: SITE EARNINGS ════════════════════════════ -->
+<div id="tab-site" class="tab-pane">
+<div class="page">
+
+  <!-- Site Earnings Controls -->
+  <div class="control-panel">
+    <div>
+      <div class="cp-label">Period</div>
+      <div class="period-nav">
+        <button class="nav-arrow" onclick="seSiteShiftPeriod(-1)">&#8249;</button>
+        <div>
+          <div class="period-display" id="se-period-label">Loading…</div>
+          <div class="period-dates" id="se-period-dates"></div>
+        </div>
+        <button class="nav-arrow" onclick="seSiteShiftPeriod(1)">&#8250;</button>
+      </div>
+    </div>
+    <div class="se-controls">
+      <button class="load-btn" onclick="loadSiteEarnings()" id="se-load-btn">Load Site Earnings</button>
+      <button class="act-btn" onclick="exportSiteEarningsCSV()" id="se-csv-btn" disabled>⬇ Export CSV</button>
+      <button class="push-btn" onclick="pushSiteEarningsToSheets()" id="se-push-btn" disabled>📥 Push to Sheets</button>
+    </div>
+    <div class="cp-status" id="se-status"></div>
+  </div>
+
+  <!-- Site Earnings Summary Strip -->
+  <div class="summary-strip" id="se-summary-strip" style="display:none;">
+    <div class="sum-card"><div class="sum-label">Employees</div><div class="sum-value" id="se-sum-emp">0</div></div>
+    <div class="sum-card"><div class="sum-label">Total Reg Hrs</div><div class="sum-value" id="se-sum-reg">0</div></div>
+    <div class="sum-card"><div class="sum-label">Total OT Hrs</div><div class="sum-value gold" id="se-sum-ot">0</div></div>
+    <div class="sum-card"><div class="sum-label">Total Basic Pay</div><div class="sum-value" id="se-sum-basic">$0</div></div>
+    <div class="sum-card"><div class="sum-label">Total OT Pay</div><div class="sum-value gold" id="se-sum-otpay">$0</div></div>
+    <div class="sum-card"><div class="sum-label">Total Gross</div><div class="sum-value gold" id="se-sum-gross">$0</div></div>
+  </div>
+
+  <!-- Site Earnings Table -->
+  <div id="se-table-area">
+    <div class="empty-state" id="se-empty-msg">
+      <svg viewBox="0 0 24 24"><path d="M19 3H5a2 2 0 00-2 2v14a2 2 0 002 2h14a2 2 0 002-2V5a2 2 0 00-2-2zm-7 14l-5-5 1.41-1.41L12 14.17l7.59-7.59L21 8l-9 9z"/></svg>
+      <p>Select a period and click <strong>Load Site Earnings</strong>.</p>
+    </div>
+    <div class="table-wrap" id="se-table-wrap" style="display:none;">
+      <table class="se-table" id="se-table">
+        <thead id="se-thead"></thead>
+        <tbody id="se-tbody"></tbody>
+        <tfoot id="se-tfoot"></tfoot>
+      </table>
+    </div>
+  </div>
+
+</div><!-- .page -->
+</div><!-- #tab-site -->
+
+<!-- ═══════════════════ TAB: ANNUAL SUMMARY ══════════════════════════ -->
+<div id="tab-annual" class="tab-pane">
+<div class="page">
+
+  <!-- Annual Summary Controls -->
+  <div class="control-panel">
+    <div>
+      <div class="cp-label">Year</div>
+      <div class="year-nav">
+        <button class="nav-arrow" onclick="shiftYear(-1)">&#8249;</button>
+        <div class="year-display" id="ann-year-display">2026</div>
+        <button class="nav-arrow" onclick="shiftYear(1)">&#8250;</button>
+      </div>
+    </div>
+    <div class="se-controls">
+      <button class="load-btn" onclick="loadAnnualSummary()" id="ann-load-btn">Load Annual Summary</button>
+      <button class="act-btn" onclick="exportAnnualCSV()" id="ann-csv-btn" disabled>⬇ Export CSV</button>
+      <button class="push-btn" onclick="pushAnnualToSheets()" id="ann-push-btn" disabled>📥 Push to Sheets</button>
+    </div>
+    <div class="cp-status" id="ann-status"></div>
+  </div>
+
+  <!-- Annual Summary Content -->
+  <div id="ann-content-area">
+    <div class="empty-state" id="ann-empty-msg">
+      <svg viewBox="0 0 24 24"><path d="M19 3h-1V1h-2v2H8V1H6v2H5a2 2 0 00-2 2v16a2 2 0 002 2h14a2 2 0 002-2V5a2 2 0 00-2-2zm0 18H5V8h14v13z"/></svg>
+      <p>Select a year and click <strong>Load Annual Summary</strong>.</p>
+    </div>
+    <div id="ann-grid" style="display:none;" class="annual-grid">
+      <!-- Left: Period breakdown -->
+      <div class="annual-panel">
+        <div class="annual-panel-hdr">📋 Period Breakdown</div>
+        <div style="overflow-x:auto;">
+          <table class="ann-table" id="ann-periods-table">
+            <thead id="ann-periods-thead"></thead>
+            <tbody id="ann-periods-tbody"></tbody>
+            <tfoot id="ann-periods-tfoot"></tfoot>
+          </table>
+        </div>
+      </div>
+      <!-- Right: Monthly rollup -->
+      <div class="annual-panel">
+        <div class="annual-panel-hdr">📆 Monthly Rollup</div>
+        <div style="overflow-x:auto;">
+          <table class="ann-table" id="ann-months-table">
+            <thead id="ann-months-thead"></thead>
+            <tbody id="ann-months-tbody"></tbody>
+            <tfoot id="ann-months-tfoot"></tfoot>
+          </table>
+        </div>
+      </div>
+    </div>
+  </div>
+
+</div><!-- .page -->
+</div><!-- #tab-annual -->
+
+</div><!-- #app -->
+
+<!-- ══════════════════════════════════════════════════════════════════════
+     PAYSLIP MODAL
+══════════════════════════════════════════════════════════════════════ -->
+<div id="slip-modal">
+  <button class="slip-close no-print" onclick="closeSlipModal()">✕</button>
+  <div class="slip-inner">
+    <div class="slip-nav no-print">
+      <button class="slip-nav-btn" id="slip-prev" onclick="navSlip(-1)">&#8249; Prev</button>
+      <span class="slip-counter" id="slip-counter"></span>
+      <button class="slip-nav-btn" id="slip-next" onclick="navSlip(1)">Next &#8250;</button>
+    </div>
+    <div id="slip-content"></div>
+    <div class="slip-actions no-print">
+      <button class="act-btn" onclick="closeSlipModal()">Close</button>
+      <button class="act-btn primary" onclick="window.print()">🖨 Print / Save PDF</button>
+    </div>
+  </div>
+</div>
+
+<!-- Hidden print zone (all payslips for bulk print) -->
+<div id="print-zone"></div>
+
+<!-- ══════════════════════════════════════════════════════════════════════
+     BANKING EDITOR MODAL
+══════════════════════════════════════════════════════════════════════ -->
+<div id="banking-modal" style="display:none;position:fixed;inset:0;z-index:300;background:rgba(10,15,26,.96);align-items:flex-start;justify-content:center;overflow-y:auto;padding:20px;">
+  <div style="background:var(--card);border:1px solid var(--border);border-radius:16px;width:100%;max-width:900px;margin:auto;overflow:hidden;">
+    <div style="padding:20px 24px;border-bottom:1px solid var(--border);display:flex;align-items:center;justify-content:space-between;">
+      <div style="font-family:'Barlow Condensed',sans-serif;font-size:20px;font-weight:700;color:var(--white);">⚙ Employee Banking &amp; Payroll Details</div>
+      <button onclick="closeBankingEditor()" style="background:none;border:none;color:var(--muted);font-size:20px;cursor:pointer;">✕</button>
+    </div>
+    <div style="padding:0 24px 8px;font-size:12px;color:var(--muted);background:rgba(201,162,39,.05);border-bottom:1px solid var(--border);padding:10px 24px;">
+      Fill in banking details for each employee. <strong style="color:var(--gold)">Payee Name</strong> = who appears in the bank CSV (institution name or employee name). <strong style="color:var(--gold)">Indiv A/C#</strong> = member's personal account at the institution (used in addenda for credit union payments).
+    </div>
+    <div style="overflow-x:auto;padding:0 24px 24px;">
+      <table id="banking-table" style="width:100%;border-collapse:collapse;font-size:12px;margin-top:16px;min-width:1100px;">
+        <thead>
+          <tr style="background:var(--surface);">
+            <th style="padding:8px 10px;text-align:left;color:var(--muted);font-size:10px;text-transform:uppercase;letter-spacing:1px;border-bottom:1px solid var(--border);">EMP #</th>
+            <th style="padding:8px 10px;text-align:left;color:var(--muted);font-size:10px;text-transform:uppercase;letter-spacing:1px;border-bottom:1px solid var(--border);">Name</th>
+            <th style="padding:8px 10px;text-align:left;color:var(--muted);font-size:10px;text-transform:uppercase;letter-spacing:1px;border-bottom:1px solid var(--border);">NIC #</th>
+            <th style="padding:8px 10px;text-align:left;color:var(--muted);font-size:10px;text-transform:uppercase;letter-spacing:1px;border-bottom:1px solid var(--border);">Payee Name</th>
+            <th style="padding:8px 10px;text-align:left;color:var(--muted);font-size:10px;text-transform:uppercase;letter-spacing:1px;border-bottom:1px solid var(--border);">Routing #</th>
+            <th style="padding:8px 10px;text-align:left;color:var(--muted);font-size:10px;text-transform:uppercase;letter-spacing:1px;border-bottom:1px solid var(--border);">A/C Number</th>
+            <th style="padding:8px 10px;text-align:left;color:var(--muted);font-size:10px;text-transform:uppercase;letter-spacing:1px;border-bottom:1px solid var(--border);">Type</th>
+            <th style="padding:8px 10px;text-align:left;color:var(--muted);font-size:10px;text-transform:uppercase;letter-spacing:1px;border-bottom:1px solid var(--border);">Indiv A/C #</th>
+            <th style="padding:8px 10px;text-align:right;color:var(--muted);font-size:10px;text-transform:uppercase;letter-spacing:1px;border-bottom:1px solid var(--border);">Health Ins</th>
+            <th style="padding:8px 10px;text-align:right;color:var(--muted);font-size:10px;text-transform:uppercase;letter-spacing:1px;border-bottom:1px solid var(--border);">PAYE/Period</th>
+            <th style="padding:8px 10px;text-align:right;color:var(--muted);font-size:10px;text-transform:uppercase;letter-spacing:1px;border-bottom:1px solid var(--border);">Allow/Day</th>
+            <th style="padding:8px 10px;text-align:left;color:var(--muted);font-size:10px;text-transform:uppercase;letter-spacing:1px;border-bottom:1px solid var(--border);">Pay Cycle</th>
+          </tr>
+        </thead>
+        <tbody id="banking-tbody"></tbody>
+      </table>
+    </div>
+    <div style="padding:16px 24px;border-top:1px solid var(--border);display:flex;gap:10px;justify-content:flex-end;">
+      <button onclick="closeBankingEditor()" style="padding:9px 20px;background:transparent;border:1px solid var(--border);color:var(--muted);border-radius:8px;cursor:pointer;font-size:13px;">Cancel</button>
+      <button onclick="saveBankingDetails()" style="padding:9px 20px;background:var(--gold);color:#0a0f1a;border:none;border-radius:8px;cursor:pointer;font-size:13px;font-weight:700;">Save All Banking Details</button>
+    </div>
+  </div>
+</div>
+
+<script>
+'use strict';
+// ══════════════════════════════════════════════════════════════════════════
+// CONFIG
+// ══════════════════════════════════════════════════════════════════════════
+const WEB_APP_URL    = "https://script.google.com/macros/s/AKfycbzG_emTfDuxvwE6WWLa7vnWn2_gNoTmv3fOe8NwoV1mMr8xYQeV3ORLmRD6pVs9qBWM/exec";
+const DEFAULT_PIN    = "1234";  // Admin password — change to match your attendance app
+const ADMIN_PASS_KEY = 'acetech_admin_pass';
+
+// ── Auth ──────────────────────────────────────────────────────────────────
+function getAdminPass() {
+  return localStorage.getItem(ADMIN_PASS_KEY) || DEFAULT_PIN;
+}
+function doAuth() {
+  const inp = document.getElementById('auth-pass');
+  if (inp.value === getAdminPass()) {
+    document.getElementById('auth-overlay').style.display = 'none';
+    document.getElementById('app').style.display = 'block';
+    initApp();
+  } else {
+    inp.classList.add('error');
+    document.getElementById('auth-error').classList.add('show');
+    setTimeout(() => { inp.classList.remove('error'); document.getElementById('auth-error').classList.remove('show'); inp.value=''; inp.focus(); }, 1500);
+  }
+}
+document.getElementById('auth-pass').addEventListener('keydown', e => { if(e.key==='Enter') doAuth(); });
+
+// ══════════════════════════════════════════════════════════════════════════
+// STATE
+// ══════════════════════════════════════════════════════════════════════════
+let periodType   = 'Fortnightly'; // 'Fortnightly' | 'Monthly'
+let periodOffset = 0;             // offset from current period
+let currentPeriod = null;         // { start, end, payDate, label }
+let payrollData   = [];           // computed payroll rows
+let adjKey        = '';           // period key for adjustments
+let allEmployees  = [];           // from getEmpFull
+let slipIndex     = 0;            // current payslip index in modal
+let slipPool      = [];           // array of payroll rows to show in modal
+
+// ══════════════════════════════════════════════════════════════════════════
+// INIT
+// ══════════════════════════════════════════════════════════════════════════
+async function initApp() {
+  await fetchPeriod();
+}
+
+// ══════════════════════════════════════════════════════════════════════════
+// PAY PERIOD LOGIC (client-side mirror of GAS logic)
+// ══════════════════════════════════════════════════════════════════════════
+const FN_REF = new Date('2026-04-22T00:00:00'); // Reference Wednesday
+
+function getFortnightlyPeriod(offset = 0) {
+  const today = new Date();
+  today.setHours(0,0,0,0);
+  const diffDays = Math.floor((today - FN_REF) / 86400000);
+  const curN = Math.floor(diffDays / 14);
+  const n = curN + offset;
+  const start = new Date(FN_REF);
+  start.setDate(FN_REF.getDate() + n * 14);
+  const end = new Date(start);
+  end.setDate(start.getDate() + 13);
+  return { start, end, payDate: end };
+}
+
+function getMonthlyPeriod(offset = 0) {
+  const today = new Date();
+  let m = today.getMonth() + offset; // 0-based
+  let y = today.getFullYear();
+  while (m > 11) { m -= 12; y++; }
+  while (m < 0)  { m += 12; y--; }
+  const start = new Date(y, m, 1);
+  const d28   = new Date(y, m, 28);
+  const dow   = d28.getDay();
+  if (dow === 6) d28.setDate(26); // Saturday → Thursday
+  if (dow === 0) d28.setDate(25); // Sunday  → Thursday
+  return { start, end: d28, payDate: d28 };
+}
+
+function fmt(d) {
+  if (!d) return '';
+  const dt = d instanceof Date ? d : new Date(d);
+  const months = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
+  return `${months[dt.getMonth()]} ${String(dt.getDate()).padStart(2,'0')}, ${dt.getFullYear()}`;
+}
+function fmtISO(d) {
+  if (!d) return '';
+  const dt = d instanceof Date ? d : new Date(d);
+  const p = n => String(n).padStart(2,'0');
+  return `${dt.getFullYear()}-${p(dt.getMonth()+1)}-${p(dt.getDate())}`;
+}
+function fmtBankDate(d) {
+  if (!d) return '';
+  const dt = d instanceof Date ? d : new Date(d);
+  return `${dt.getMonth()+1}/${dt.getDate()}/${dt.getFullYear()}`;
+}
+
+function setPeriodType(type) {
+  periodType   = type;
+  periodOffset = 0;
+  document.getElementById('btn-fn').classList.toggle('active', type==='Fortnightly');
+  document.getElementById('btn-mo').classList.toggle('active', type==='Monthly');
+  updatePeriodDisplay();
+}
+
+function shiftPeriod(dir) {
+  periodOffset += dir;
+  updatePeriodDisplay();
+}
+
+function updatePeriodDisplay() {
+  const p = periodType === 'Fortnightly'
+    ? getFortnightlyPeriod(periodOffset)
+    : getMonthlyPeriod(periodOffset);
+  currentPeriod = {
+    start:   fmtISO(p.start),
+    end:     fmtISO(p.end),
+    payDate: fmtISO(p.payDate)
+  };
+
+  let label, dates;
+  if (periodType === 'Fortnightly') {
+    const months = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
+    label = `${months[p.start.getMonth()]} ${String(p.start.getDate()).padStart(2,'0')} – ${months[p.end.getMonth()]} ${String(p.end.getDate()).padStart(2,'0')}, ${p.end.getFullYear()}`;
+    dates = `Fortnightly period`;
+  } else {
+    const months = ['January','February','March','April','May','June','July','August','September','October','November','December'];
+    label = months[p.start.getMonth()] + ' ' + p.start.getFullYear();
+    dates = `01 – 28 (monthly)`;
+  }
+  document.getElementById('period-label').textContent = label;
+  document.getElementById('period-dates').textContent = dates;
+  document.getElementById('pay-date-display').textContent = fmt(p.payDate);
+}
+
+async function fetchPeriod() {
+  updatePeriodDisplay();
+}
+
+// ══════════════════════════════════════════════════════════════════════════
+// LOAD PAYROLL
+// ══════════════════════════════════════════════════════════════════════════
+async function loadPayroll() {
+  if (!currentPeriod) return;
+  const btn = document.getElementById('load-btn');
+  const status = document.getElementById('cp-status');
+  btn.disabled = true;
+  btn.textContent = '⏳ Loading…';
+  status.textContent = '';
+  status.className = 'cp-status';
+
+  try {
+    const p = new URLSearchParams({
+      action: 'getPayroll',
+      startDate: currentPeriod.start,
+      endDate:   currentPeriod.end,
+      payDate:   currentPeriod.payDate
+    });
+    const ctrl = new AbortController();
+    setTimeout(() => ctrl.abort(), 60000);
+    const res  = await fetch(`${WEB_APP_URL}?${p}`, { signal: ctrl.signal });
+    const data = await res.json();
+    if (!data.success) throw new Error(data.error || 'Server error');
+
+    payrollData = data.payroll;
+    adjKey      = data.adjKey;
+    renderPayrollTable();
+    status.textContent = `✓ ${payrollData.length} employees loaded`;
+    status.className   = 'cp-status ok';
+    document.getElementById('csv-btn').disabled = false;
+  } catch(err) {
+    status.textContent = '✕ ' + err.message;
+    status.className   = 'cp-status err';
+  } finally {
+    btn.disabled = false;
+    btn.textContent = 'Load Payroll';
+  }
+}
+
+// ══════════════════════════════════════════════════════════════════════════
+// RENDER TABLE
+// ══════════════════════════════════════════════════════════════════════════
+function r2(n) { return Math.round((n || 0) * 100) / 100; }
+function cur(n) {
+  const v = r2(n);
+  if (v === 0) return '<span class="zero">—</span>';
+  return '$' + v.toFixed(2);
+}
+function hrs(n) { return r2(n).toFixed(2); }
+
+function renderPayrollTable() {
+  document.getElementById('empty-msg').style.display   = 'none';
+  document.getElementById('table-wrap').style.display  = 'block';
+  document.getElementById('summary-strip').style.display = 'grid';
+  document.getElementById('action-bar').style.display  = 'flex';
+
+  const tbody = document.getElementById('payroll-tbody');
+  const tfoot = document.getElementById('payroll-tfoot');
+  tbody.innerHTML = '';
+  tfoot.innerHTML = '';
+
+  let totReg=0, totOT=0, totGross=0, totDed=0, totNet=0, totEmp=0;
+
+  payrollData.forEach((emp, idx) => {
+    if (r2(emp.gross) === 0 && r2(emp.netPay) === 0) return; // Skip zero-pay employees
+    totEmp++;
+    totReg   += r2(emp.regHrs);
+    totOT    += r2(emp.otHrs);
+    totGross += r2(emp.gross);
+    totDed   += r2(emp.totalDed);
+    totNet   += r2(emp.netPay);
+
+    const row = document.createElement('tr');
+    row.dataset.idx = idx;
+    row.innerHTML = `
+      <td class="emp-id">${escHtml(emp.id)}</td>
+      <td class="emp-name">${escHtml(emp.name)}</td>
+      <td class="emp-pos">${escHtml(emp.position)}</td>
+      <td>$${r2(emp.rate).toFixed(2)}</td>
+      <td>${r2(emp.workDays)}</td>
+      <td>${hrs(emp.regHrs)}</td>
+      <td class="${r2(emp.otHrs)>0?'gold-text':''}">${hrs(emp.otHrs)}</td>
+      <td>${cur(emp.basicPay)}</td>
+      <td>${cur(emp.otPay)}</td>
+      <td>${cur(emp.allowance)}</td>
+      <td><input type="number" class="edit-cell" data-field="bonus" data-idx="${idx}" value="${r2(emp.bonus)||''}" placeholder="0.00" step="0.01" min="0" onchange="onAdjChange(${idx},'bonus',this.value)"></td>
+      <td><input type="number" class="edit-cell" data-field="backPay" data-idx="${idx}" value="${r2(emp.backPay)||''}" placeholder="0.00" step="0.01" min="0" onchange="onAdjChange(${idx},'backPay',this.value)"></td>
+      <td class="gross-val">$${r2(emp.gross).toFixed(2)}</td>
+      <td class="ded-val">${cur(emp.nic)}</td>
+      <td class="ded-val">${cur(emp.paye)}</td>
+      <td class="ded-val">${cur(emp.healthIns)}</td>
+      <td><input type="number" class="edit-cell" data-field="salAdv" data-idx="${idx}" value="${r2(emp.salAdv)||''}" placeholder="0.00" step="0.01" min="0" onchange="onAdjChange(${idx},'salAdv',this.value)"></td>
+      <td><input type="number" class="edit-cell" data-field="loan" data-idx="${idx}" value="${r2(emp.loan)||''}" placeholder="0.00" step="0.01" min="0" onchange="onAdjChange(${idx},'loan',this.value)"></td>
+      <td><input type="number" class="edit-cell" data-field="other" data-idx="${idx}" value="${r2(emp.other)||''}" placeholder="0.00" step="0.01" min="0" onchange="onAdjChange(${idx},'other',this.value)"></td>
+      <td class="net-val">$${r2(emp.netPay).toFixed(2)}</td>
+      <td><button class="slip-btn" onclick="showSingleSlip(${idx})">🖨 Payslip</button></td>
+    `;
+    tbody.appendChild(row);
+  });
+
+  // Footer totals
+  tfoot.innerHTML = `
+    <tr>
+      <td class="lbl" colspan="5">TOTALS — ${totEmp} employees</td>
+      <td>${totReg.toFixed(2)}</td>
+      <td>${totOT.toFixed(2)}</td>
+      <td colspan="5"></td>
+      <td class="gross-tot">$${totGross.toFixed(2)}</td>
+      <td colspan="3" class="ded-tot"></td>
+      <td colspan="3" class="ded-tot"></td>
+      <td class="ded-tot">$${totDed.toFixed(2)}</td>
+      <td class="net-tot">$${totNet.toFixed(2)}</td>
+      <td></td>
+    </tr>
+  `;
+
+  // Summary strip
+  document.getElementById('sum-emp').textContent   = totEmp;
+  document.getElementById('sum-reg').textContent   = totReg.toFixed(1);
+  document.getElementById('sum-ot').textContent    = totOT.toFixed(1);
+  document.getElementById('sum-gross').textContent = '$' + totGross.toFixed(2);
+  document.getElementById('sum-ded').textContent   = '$' + totDed.toFixed(2);
+  document.getElementById('sum-net').textContent   = '$' + totNet.toFixed(2);
+}
+
+// ══════════════════════════════════════════════════════════════════════════
+// ADJUSTMENT EDITING
+// ══════════════════════════════════════════════════════════════════════════
+function onAdjChange(idx, field, value) {
+  const emp = payrollData[idx];
+  if (!emp) return;
+  emp[field] = parseFloat(value) || 0;
+  // Recompute gross, NIC, totalDed, netPay
+  const gross    = r2(emp.basicPay + emp.otPay + emp.allowance + emp.bonus + emp.backPay);
+  const nic      = r2(gross * 0.05);
+  const totalDed = r2(nic + emp.healthIns + emp.paye + emp.salAdv + emp.loan + emp.other);
+  const netPay   = r2(gross - totalDed);
+  emp.gross    = gross;
+  emp.nic      = nic;
+  emp.totalDed = totalDed;
+  emp.netPay   = netPay;
+  // Update visible cells in this row
+  const row = document.querySelector(`tr[data-idx="${idx}"]`);
+  if (row) {
+    row.querySelector('.gross-val').textContent = '$' + gross.toFixed(2);
+    row.querySelector('.net-val').textContent   = '$' + netPay.toFixed(2);
+  }
+  // Show unsaved notice
+  document.getElementById('save-adj-btn').style.background = 'rgba(201,162,39,.2)';
+  document.getElementById('save-adj-btn').style.borderColor = 'var(--gold)';
+  document.getElementById('save-adj-btn').style.color = 'var(--gold)';
+}
+
+// ══════════════════════════════════════════════════════════════════════════
+// SAVE ADJUSTMENTS
+// ══════════════════════════════════════════════════════════════════════════
+async function saveAdjustments() {
+  const btn = document.getElementById('save-adj-btn');
+  btn.textContent = '⏳ Saving…';
+  btn.disabled = true;
+  try {
+    const rows = payrollData.map(e => ({
+      id: e.id,
+      bonus:   r2(e.bonus),
+      backPay: r2(e.backPay),
+      salAdv:  r2(e.salAdv),
+      loan:    r2(e.loan),
+      other:   r2(e.other),
+      note:    e.note || ''
+    }));
+    const p = new URLSearchParams({
+      action: 'saveAdjustments',
+      adjKey,
+      rows: JSON.stringify(rows)
+    });
+    const res  = await fetch(`${WEB_APP_URL}?${p}`);
+    const data = await res.json();
+    if (!data.success) throw new Error(data.error);
+    btn.textContent = '✓ Saved';
+    btn.style.background    = 'rgba(34,197,94,.15)';
+    btn.style.borderColor   = 'rgba(34,197,94,.4)';
+    btn.style.color         = 'var(--green)';
+    setTimeout(() => {
+      btn.textContent = '💾 Save Adjustments';
+      btn.style.background  = '';
+      btn.style.borderColor = '';
+      btn.style.color       = '';
+      btn.disabled = false;
+    }, 2500);
+  } catch(err) {
+    btn.textContent = '✕ Error: ' + err.message;
+    btn.disabled = false;
+    setTimeout(() => { btn.textContent = '💾 Save Adjustments'; }, 3000);
+  }
+}
+
+// ══════════════════════════════════════════════════════════════════════════
+// BANK CSV EXPORT
+// ══════════════════════════════════════════════════════════════════════════
+function exportBankCSV() {
+  if (!payrollData.length) { alert('Load payroll first.'); return; }
+  const payDateStr = fmtBankDate(new Date(currentPeriod.payDate));
+
+  const rows = [['Full Name','Individual ID','R/T Number','A/C Number','Account Type','Amount','Due Date','DR/CR','Addenda']];
+
+  payrollData.forEach(emp => {
+    if (r2(emp.netPay) <= 0) return;
+    if (!emp.acctNumber) return; // Skip employees without bank details
+    const payeeName = emp.payeeName || emp.name;
+    const amount    = r2(emp.netPay).toFixed(2);
+    const routing   = emp.routing || '';
+    const acctNum   = emp.acctNumber;
+    const acctType  = emp.acctType || 'DDA';
+    let addenda;
+    if (emp.cuAcct) {
+      // Credit Union: addenda identifies the member's personal CU account
+      addenda = `Payment by ACEtech to ${emp.name} a/c ${emp.cuAcct}`;
+    } else {
+      addenda = `Regular Salary`;
+    }
+    rows.push([payeeName, emp.nic, `"${routing}"`, acctNum, acctType, amount, payDateStr, 'CREDIT', addenda]);
+  });
+
+  const csv = rows.map(r => r.map(v => {
+    const s = String(v);
+    // Wrap in quotes if contains comma, newline, or quote
+    if (s.includes(',') || s.includes('\n') || s.includes('"')) {
+      return '"' + s.replace(/"/g, '""') + '"';
+    }
+    return s;
+  }).join(',')).join('\r\n');
+
+  const blob = new Blob([csv], { type: 'text/csv' });
+  const url  = URL.createObjectURL(blob);
+  const a    = document.createElement('a');
+  const dateTag = currentPeriod.start.replace(/-/g,'').substring(0,6);
+  a.href     = url;
+  a.download = `ACEtech_Bank_${dateTag}_${currentPeriod.start}_${currentPeriod.end}.csv`;
+  a.click();
+  URL.revokeObjectURL(url);
+}
+
+// ══════════════════════════════════════════════════════════════════════════
+// PAYSLIP GENERATION
+// ══════════════════════════════════════════════════════════════════════════
+function buildPayslipHTML(emp) {
+  const period = currentPeriod
+    ? `${fmt(new Date(currentPeriod.start))} – ${fmt(new Date(currentPeriod.end))}`
+    : '—';
+  const payDateStr = currentPeriod ? fmt(new Date(currentPeriod.payDate)) : '—';
+
+  function row(label, value, cls='') {
+    const v = r2(value);
+    if (v === 0) return `<div class="ps-row ${cls}"><span>${label}</span><span>—</span></div>`;
+    return `<div class="ps-row ${cls}"><span>${label}</span><span>$${v.toFixed(2)}</span></div>`;
+  }
+
+  return `
+  <div class="payslip-card">
+    <div class="ps-header">
+      <div>
+        <div class="ps-company">ACE<span>tech</span></div>
+        <div class="ps-company-sub">Engineering &amp; Construction</div>
+      </div>
+      <div class="ps-period">
+        <div class="ps-period-label">Payslip Period</div>
+        <div class="ps-period-value">${escHtml(period)}</div>
+        <div style="font-size:11px;color:#888;margin-top:2px;">Pay Date: ${escHtml(payDateStr)}</div>
+      </div>
+    </div>
+
+    <div class="ps-emp">
+      <div class="ps-field"><div class="ps-field-label">Employee #</div><div class="ps-field-value">${escHtml(emp.id)}</div></div>
+      <div class="ps-field"><div class="ps-field-label">Employee Name</div><div class="ps-field-value">${escHtml(emp.name)}</div></div>
+      <div class="ps-field"><div class="ps-field-label">Position</div><div class="ps-field-value">${escHtml(emp.position)}</div></div>
+      <div class="ps-field"><div class="ps-field-label">NIC #</div><div class="ps-field-value">${escHtml(emp.nic)}</div></div>
+      <div class="ps-field"><div class="ps-field-label">Rate / Hour</div><div class="ps-field-value">$${r2(emp.rate).toFixed(2)}</div></div>
+      <div class="ps-field"><div class="ps-field-label">Pay Cycle</div><div class="ps-field-value">${escHtml(emp.payCycle)}</div></div>
+    </div>
+
+    <div class="ps-sections">
+      <div>
+        <h4>Earnings</h4>
+        ${row('Regular Pay ('+ r2(emp.regHrs).toFixed(2) +' hrs)', emp.basicPay)}
+        ${row('OT Pay ('+ r2(emp.otHrs).toFixed(2) +' hrs × 1.5)', emp.otPay)}
+        ${row('Allowance ('+ emp.workDays +' days)', emp.allowance)}
+        ${row('Bonus', emp.bonus)}
+        ${row('Back Pay', emp.backPay)}
+        <div class="ps-row bold gold"><span>GROSS SALARY</span><span>$${r2(emp.gross).toFixed(2)}</span></div>
+      <div>
+        <h4>Deductions</h4>
+        ${row('NIC (5%)', emp.nic, 'ded-val')}
+        ${row('PAYE', emp.paye, 'ded-val')}
+        ${row('Health Insurance', emp.healthIns, 'ded-val')}
+        ${row('Salary Advance', emp.salAdv, 'ded-val')}
+        ${row('Loan', emp.loan, 'ded-val')}
+        ${row('Other Deductions', emp.other, 'ded-val')}
+        <div class="ps-row bold red"><span>TOTAL DEDUCTIONS</span><span>$${r2(emp.totalDed).toFixed(2)}</span></div>
+      </div>
+    </div>
+
+    <div class="ps-summary">
+      <div class="ps-sum-block">
+        <div class="ps-sum-label">Gross Salary</div>
+        <div class="ps-sum-value">$${r2(emp.gross).toFixed(2)}</div>
+      </div>
+      <div class="ps-sum-block red">
+        <div class="ps-sum-label">Total Deductions</div>
+        <div class="ps-sum-value">$${r2(emp.totalDed).toFixed(2)}</div>
+      </div>
+      <div class="ps-sum-block green">
+        <div class="ps-sum-label">NET PAY</div>
+        <div class="ps-sum-value large">$${r2(emp.netPay).toFixed(2)}</div>
+      </div>
+    </div>
+
+    <div class="ps-footer">
+      <div>
+        <div class="ps-sig-line"></div>
+        <div class="ps-sig-name">U. Jules</div>
+        <div class="ps-sig-title">Director</div>
+      </div>
+      <div>
+        <div class="ps-sig-line"></div>
+        <div class="ps-sig-name">A. Celestin</div>
+        <div class="ps-sig-title">Finance Officer</div>
+      </div>
+    </div>
+  </div>`;
+}
+
+// ══════════════════════════════════════════════════════════════════════════
+// PRINT ALL PAYSLIPS
+// ══════════════════════════════════════════════════════════════════════════
+function showAllSlips() {
+  if (!payrollData.length) return;
+  const zone = document.getElementById('print-zone');
+  zone.innerHTML = payrollData.map(emp => buildPayslipHTML(emp)).join('');
+  window.print();
+  zone.innerHTML = '';
+}
+
+// ══════════════════════════════════════════════════════════════════════════
+// SINGLE PAYSLIP MODAL
+// ══════════════════════════════════════════════════════════════════════════
+let slipPool  = [];
+let slipIndex = 0;
+
+function showSingleSlip(idx) {
+  slipPool  = payrollData;
+  slipIndex = idx;
+  renderSlip();
+  document.getElementById('slip-modal').classList.add('show');
+}
+
+function navSlip(dir) {
+  slipIndex = Math.max(0, Math.min(slipPool.length - 1, slipIndex + dir));
+  renderSlip();
+}
+
+function renderSlip() {
+  document.getElementById('slip-content').innerHTML = buildPayslipHTML(slipPool[slipIndex]);
+  document.getElementById('slip-counter').textContent = (slipIndex + 1) + ' / ' + slipPool.length;
+  document.getElementById('slip-prev').disabled = slipIndex <= 0;
+  document.getElementById('slip-next').disabled = slipIndex >= slipPool.length - 1;
+}
+
+function closeSlipModal() {
+  document.getElementById('slip-modal').classList.remove('show');
+}
+
+// ══════════════════════════════════════════════════════════════════════════
+// BANKING EDITOR
+// ══════════════════════════════════════════════════════════════════════════
+function openBankingEditor() {
+  if (!allEmployees.length) {
+    // Load employees first
+    fetch(`${WEB_APP_URL}?action=getEmpFull`)
+      .then(r => r.json())
+      .then(data => {
+        if (data.success) { allEmployees = data.employees; renderBankingTable(); }
+      });
+  } else {
+    renderBankingTable();
+  }
+  document.getElementById('banking-modal').style.display = 'flex';
+}
+
+function renderBankingTable() {
+  const tbody = document.getElementById('banking-tbody');
+  tbody.innerHTML = allEmployees.map((emp, i) => `
+    <tr style="border-bottom:1px solid var(--border);">
+      <td style="padding:7px 10px;font-family:monospace;font-size:11px;color:var(--gold);">${escHtml(emp.id)}</td>
+      <td style="padding:7px 10px;font-weight:600;color:var(--white);">${escHtml(emp.name)}</td>
+      <td style="padding:7px 10px;color:var(--muted);font-size:11px;">${escHtml(emp.nic||'')}</td>
+      <td style="padding:7px 10px;"><input data-i="${i}" data-f="payeeName" value="${escHtml(emp.payeeName||emp.name)}" style="width:160px;background:var(--surface);border:1px solid var(--border);border-radius:6px;padding:5px 8px;color:var(--text);font-size:12px;"></td>
+      <td style="padding:7px 10px;"><input data-i="${i}" data-f="routing" value="${escHtml(emp.routing||'')}" style="width:110px;background:var(--surface);border:1px solid var(--border);border-radius:6px;padding:5px 8px;color:var(--text);font-size:12px;"></td>
+      <td style="padding:7px 10px;"><input data-i="${i}" data-f="acctNumber" value="${escHtml(emp.acctNumber||'')}" style="width:120px;background:var(--surface);border:1px solid var(--border);border-radius:6px;padding:5px 8px;color:var(--text);font-size:12px;"></td>
+      <td style="padding:7px 10px;">
+        <select data-i="${i}" data-f="acctType" style="background:var(--surface);border:1px solid var(--border);border-radius:6px;padding:5px 6px;color:var(--text);font-size:12px;">
+          <option ${emp.acctType==='DDA'?'selected':''}>DDA</option>
+          <option ${emp.acctType==='SAV'?'selected':''}>SAV</option>
+        </select>
+      </td>
+      <td style="padding:7px 10px;"><input data-i="${i}" data-f="cuAcct" value="${escHtml(emp.cuAcct||'')}" style="width:110px;background:var(--surface);border:1px solid var(--border);border-radius:6px;padding:5px 8px;color:var(--text);font-size:12px;"></td>
+      <td style="padding:7px 10px;"><input type="number" data-i="${i}" data-f="healthIns" value="${emp.healthIns||0}" step="0.01" style="width:80px;background:var(--surface);border:1px solid var(--border);border-radius:6px;padding:5px 8px;color:var(--text);font-size:12px;"></td>
+      <td style="padding:7px 10px;"><input type="number" data-i="${i}" data-f="payePeriod" value="${emp.payePeriod||0}" step="0.01" style="width:80px;background:var(--surface);border:1px solid var(--border);border-radius:6px;padding:5px 8px;color:var(--text);font-size:12px;"></td>
+      <td style="padding:7px 10px;"><input type="number" data-i="${i}" data-f="allowDay" value="${emp.allowDay||0}" step="0.01" style="width:70px;background:var(--surface);border:1px solid var(--border);border-radius:6px;padding:5px 8px;color:var(--text);font-size:12px;"></td>
+      <td style="padding:7px 10px;">
+        <select data-i="${i}" data-f="payCycle" style="background:var(--surface);border:1px solid var(--border);border-radius:6px;padding:5px 6px;color:var(--text);font-size:12px;">
+          <option ${emp.payCycle==='Fortnightly'?'selected':''}>Fortnightly</option>
+          <option ${emp.payCycle==='Monthly'?'selected':''}>Monthly</option>
+        </select>
+      </td>
+    </tr>`).join('');
+}
+
+async function saveBankingDetails() {
+  const inputs = document.querySelectorAll('#banking-tbody [data-i]');
+  inputs.forEach(inp => {
+    const i = parseInt(inp.dataset.i);
+    const f = inp.dataset.f;
+    if (!allEmployees[i]) return;
+    allEmployees[i][f] = inp.tagName === 'SELECT' ? inp.value : (inp.type === 'number' ? parseFloat(inp.value)||0 : inp.value);
+  });
+
+  const btn = document.querySelector('#banking-modal button[onclick="saveBankingDetails()"]');
+  btn.textContent = '⏳ Saving…';
+  btn.disabled = true;
+  let saved = 0, errors = 0;
+
+  for (const emp of allEmployees) {
+    try {
+      const p = new URLSearchParams({
+        action:    'updateEmployee',
+        empId:     emp.id,
+        field:     '__banking__',
+        payeeName: emp.payeeName  || '',
+        routing:   emp.routing    || '',
+        acctNumber:emp.acctNumber || '',
+        acctType:  emp.acctType   || 'DDA',
+        cuAcct:    emp.cuAcct     || '',
+        healthIns: emp.healthIns  || 0,
+        payePeriod:emp.payePeriod || 0,
+        allowDay:  emp.allowDay   || 0,
+        paycycle:  emp.payCycle   || 'Fortnightly'
+      });
+      const res  = await fetch(`${WEB_APP_URL}?${p}`);
+      const data = await res.json();
+      if (data.success) saved++;
+      else errors++;
+    } catch { errors++; }
+  }
+
+  btn.textContent = errors ? `✕ ${errors} errors, ${saved} saved` : `✓ All ${saved} saved`;
+  btn.disabled = false;
+  setTimeout(() => {
+    btn.textContent = 'Save All Banking Details';
+    if (!errors) closeBankingEditor();
+  }, 2000);
+}
+
+function closeBankingEditor() {
+  document.getElementById('banking-modal').style.display = 'none';
+}
+
+// ══════════════════════════════════════════════════════════════════════════
+// TAB SWITCHING
+// ══════════════════════════════════════════════════════════════════════════
+function switchTab(name) {
+  ['payroll','site','annual'].forEach(t => {
+    document.getElementById('tab-' + t).classList.toggle('active', t === name);
+    document.getElementById('tab-' + t + '-btn').classList.toggle('active', t === name);
+  });
+}
+
+// ══════════════════════════════════════════════════════════════════════════
+// SITE EARNINGS
+// ══════════════════════════════════════════════════════════════════════════
+let sePeriodOffset = 0;
+let seData = null;
+
+function seSiteShiftPeriod(dir) {
+  sePeriodOffset += dir;
+  renderSePeriodLabel();
+}
+
+function renderSePeriodLabel() {
+  const { start, end } = getFnPeriod(sePeriodOffset);
+  const mn = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
+  const fmt = d => { const [y,m,dd] = d.split('-'); return mn[+m-1]+' '+dd+', '+y; };
+  document.getElementById('se-period-label').textContent = fmt(start) + ' – ' + fmt(end);
+  document.getElementById('se-period-dates').textContent = start + ' to ' + end;
+}
+
+async function loadSiteEarnings() {
+  const { start, end } = getFnPeriod(sePeriodOffset);
+  const btn = document.getElementById('se-load-btn');
+  const status = document.getElementById('se-status');
+  btn.textContent = '⏳ Loading…'; btn.disabled = true; status.textContent = '';
+  try {
+    const res  = await fetch(`${WEB_APP_URL}?action=getSiteEarnings&startDate=${start}&endDate=${end}`);
+    const data = await res.json();
+    if (!data.success) throw new Error(data.error || 'Failed');
+    seData = data;
+    renderSiteEarningsTable(data);
+    document.getElementById('se-csv-btn').disabled  = false;
+    document.getElementById('se-push-btn').disabled = false;
+    status.textContent = '✓ Loaded ' + data.rows.length + ' employees';
+    status.style.color = 'var(--green)';
+  } catch(err) {
+    status.textContent = '✗ ' + err.message; status.style.color = 'var(--red)';
+  }
+  btn.textContent = 'Load Site Earnings'; btn.disabled = false;
+}
+
+function renderSiteEarningsTable(data) {
+  const { sites, rows, totals } = data;
+  const fmtD = n => n === 0 ? '—' : n.toFixed(1);
+  const fmtC = n => '$' + n.toFixed(2);
+
+  document.getElementById('se-sum-emp').textContent   = rows.length;
+  document.getElementById('se-sum-reg').textContent   = totals.regHrs.toFixed(1);
+  document.getElementById('se-sum-ot').textContent    = totals.otHrs.toFixed(1);
+  document.getElementById('se-sum-basic').textContent = fmtC(totals.basicPay);
+  document.getElementById('se-sum-otpay').textContent = fmtC(totals.otPay);
+  document.getElementById('se-sum-gross').textContent = fmtC(totals.gross);
+  document.getElementById('se-summary-strip').style.display = '';
+
+  let hdr = `<tr>
+    <th class="lh">EMP ID</th><th class="lh" style="min-width:140px;">Name</th><th>Rate/Hr</th>`;
+  sites.forEach(s => hdr += `<th class="site-hdr" title="${escHtml(s.name)}">${escHtml(s.code)}</th>`);
+  hdr += `<th>Reg Hrs</th><th>OT Hrs</th><th>Basic Pay</th><th>OT Pay (1.5×)</th><th>Gross Total</th></tr>`;
+  document.getElementById('se-thead').innerHTML = hdr;
+
+  let body = '';
+  rows.forEach(emp => {
+    body += `<tr>
+      <td class="lh emp-id">${escHtml(emp.empId)}</td>
+      <td class="lh emp-name">${escHtml(emp.name)}</td>
+      <td>$${emp.rate.toFixed(2)}</td>`;
+    sites.forEach(s => {
+      const h = emp.siteHours[s.code] || 0;
+      body += `<td class="${h===0?'zero':''}">${fmtD(h)}</td>`;
+    });
+    body += `<td>${fmtD(emp.regHrs)}</td>
+      <td class="${emp.otHrs===0?'zero':''}">${fmtD(emp.otHrs)}</td>
+      <td>$${emp.basicPay.toFixed(2)}</td>
+      <td class="${emp.otPay===0?'zero':''}">$${emp.otPay.toFixed(2)}</td>
+      <td class="gross">$${emp.gross.toFixed(2)}</td></tr>`;
+  });
+  document.getElementById('se-tbody').innerHTML = body;
+
+  let foot = `<tr><td class="lbl" colspan="3">PERIOD TOTALS</td>`;
+  sites.forEach(s => foot += `<td>${fmtD(totals.siteHours[s.code]||0)}</td>`);
+  foot += `<td>${fmtD(totals.regHrs)}</td><td>${fmtD(totals.otHrs)}</td>
+    <td>${fmtC(totals.basicPay)}</td><td>${fmtC(totals.otPay)}</td><td>${fmtC(totals.gross)}</td></tr>`;
+  document.getElementById('se-tfoot').innerHTML = foot;
+
+  document.getElementById('se-empty-msg').style.display  = 'none';
+  document.getElementById('se-table-wrap').style.display = '';
+}
+
+function exportSiteEarningsCSV() {
+  if (!seData) return;
+  const { start, end } = getFnPeriod(sePeriodOffset);
+  const { sites, rows, totals } = seData;
+  const cols = ['EMP ID','Employee Name','Rate/Hr'];
+  sites.forEach(s => cols.push(s.code + ' (' + s.name + ')'));
+  cols.push('Reg Hrs','OT Hrs','Basic Pay','OT Pay (1.5x)','Gross Total');
+  let csv = cols.map(c => `"${c}"`).join(',') + '\n';
+  rows.forEach(emp => {
+    const row = [emp.empId, emp.name, emp.rate];
+    sites.forEach(s => row.push(emp.siteHours[s.code] || 0));
+    row.push(emp.regHrs, emp.otHrs, emp.basicPay, emp.otPay, emp.gross);
+    csv += row.map(v => typeof v === 'string' ? `"${v}"` : v).join(',') + '\n';
+  });
+  const totRow = ['','PERIOD TOTALS',''];
+  sites.forEach(s => totRow.push(totals.siteHours[s.code] || 0));
+  totRow.push(totals.regHrs, totals.otHrs, totals.basicPay, totals.otPay, totals.gross);
+  csv += totRow.map(v => typeof v === 'string' ? `"${v}"` : v).join(',') + '\n';
+  const a = Object.assign(document.createElement('a'), {
+    href: URL.createObjectURL(new Blob([csv], {type:'text/csv'})),
+    download: `SiteEarnings_${start}_${end}.csv`
+  });
+  a.click();
+}
+
+async function pushSiteEarningsToSheets() {
+  if (!seData) return;
+  const { start, end } = getFnPeriod(sePeriodOffset);
+  const btn = document.getElementById('se-push-btn');
+  btn.textContent = '⏳ Pushing…'; btn.disabled = true;
+  try {
+    const res  = await fetch(`${WEB_APP_URL}?action=buildSiteEarnings&startDate=${start}&endDate=${end}`);
+    const data = await res.json();
+    btn.textContent = data.success ? '✓ Pushed to Sheets' : '✗ ' + (data.error||'Error');
+    btn.classList.toggle('success', !!data.success);
+  } catch(err) { btn.textContent = '✗ ' + err.message; }
+  setTimeout(() => { btn.textContent = '📥 Push to Sheets'; btn.disabled=false; btn.classList.remove('success'); }, 3000);
+}
+
+// ══════════════════════════════════════════════════════════════════════════
+// ANNUAL SUMMARY
+// ══════════════════════════════════════════════════════════════════════════
+let annYear = new Date().getFullYear();
+let annData = null;
+
+function shiftYear(dir) {
+  annYear += dir;
+  document.getElementById('ann-year-display').textContent = annYear;
+}
+
+async function loadAnnualSummary() {
+  const btn = document.getElementById('ann-load-btn');
+  const status = document.getElementById('ann-status');
+  btn.textContent = '⏳ Loading…'; btn.disabled = true; status.textContent = '';
+  try {
+    const res  = await fetch(`${WEB_APP_URL}?action=getAnnualSummary&year=${annYear}`);
+    const data = await res.json();
+    if (!data.success) throw new Error(data.error || 'Failed');
+    annData = data;
+    renderAnnualSummary(data);
+    document.getElementById('ann-csv-btn').disabled  = false;
+    document.getElementById('ann-push-btn').disabled = false;
+    const active = data.periods.filter(p => p.total > 0).length;
+    status.textContent = `✓ ${active} periods with data`;
+    status.style.color = 'var(--green)';
+  } catch(err) {
+    status.textContent = '✗ ' + err.message; status.style.color = 'var(--red)';
+  }
+  btn.textContent = 'Load Annual Summary'; btn.disabled = false;
+}
+
+function renderAnnualSummary(data) {
+  const { sites, periods, months, annualTotal } = data;
+  const fmtC = n => n === 0 ? '—' : '$' + n.toFixed(2);
+
+  function buildHdr(firstLabel) {
+    let h = `<tr><th>${escHtml(firstLabel)}</th>`;
+    sites.forEach(s => h += `<th class="site-hdr" title="${escHtml(s.name)}">${escHtml(s.code)}</th>`);
+    h += `<th class="tot">TOTAL</th></tr>`;
+    return h;
+  }
+
+  // Periods panel
+  document.getElementById('ann-periods-thead').innerHTML = buildHdr('Cover Period');
+  let pBody = '';
+  periods.forEach(p => {
+    pBody += `<tr><td style="font-size:11px;white-space:nowrap;">${escHtml(p.coverPeriod)}</td>`;
+    sites.forEach(s => { const v=p.siteCosts[s.code]||0; pBody += `<td class="${v===0?'zero':''}">${fmtC(v)}</td>`; });
+    pBody += `<td class="tot">${fmtC(p.total)}</td></tr>`;
+  });
+  if (!periods.length) pBody = `<tr><td colspan="${sites.length+2}" style="text-align:center;padding:20px;color:var(--muted);">No data for ${annYear}</td></tr>`;
+  document.getElementById('ann-periods-tbody').innerHTML = pBody;
+  let pFoot = `<tr><td>ANNUAL TOTAL</td>`;
+  sites.forEach(s => pFoot += `<td>${fmtC(annualTotal.siteCosts[s.code]||0)}</td>`);
+  pFoot += `<td>${fmtC(annualTotal.total)}</td></tr>`;
+  document.getElementById('ann-periods-tfoot').innerHTML = pFoot;
+
+  // Months panel
+  document.getElementById('ann-months-thead').innerHTML = buildHdr('Month');
+  let mBody = '';
+  months.forEach(m => {
+    mBody += `<tr><td>${escHtml(m.month)}</td>`;
+    sites.forEach(s => { const v=m.siteCosts[s.code]||0; mBody += `<td class="${v===0?'zero':''}">${fmtC(v)}</td>`; });
+    mBody += `<td class="tot">${fmtC(m.total)}</td></tr>`;
+  });
+  document.getElementById('ann-months-tbody').innerHTML = mBody;
+  let mFoot = `<tr><td>ANNUAL TOTAL</td>`;
+  sites.forEach(s => mFoot += `<td>${fmtC(annualTotal.siteCosts[s.code]||0)}</td>`);
+  mFoot += `<td>${fmtC(annualTotal.total)}</td></tr>`;
+  document.getElementById('ann-months-tfoot').innerHTML = mFoot;
+
+  document.getElementById('ann-empty-msg').style.display = 'none';
+  document.getElementById('ann-grid').style.display      = '';
+}
+
+function exportAnnualCSV() {
+  if (!annData) return;
+  const { sites, periods, months, annualTotal } = annData;
+  const cols = ['Cover Period'];
+  sites.forEach(s => cols.push(s.code + ' (' + s.name + ')'));
+  cols.push('Period Total');
+  let csv = '--- PERIOD BREAKDOWN ---\n' + cols.map(c=>`"${c}"`).join(',') + '\n';
+  periods.forEach(p => {
+    const row = [p.coverPeriod];
+    sites.forEach(s => row.push(p.siteCosts[s.code]||0));
+    row.push(p.total);
+    csv += row.map(v=>typeof v==='string'?`"${v}"`:v).join(',') + '\n';
+  });
+  const colsM = ['Month'];
+  sites.forEach(s => colsM.push(s.code + ' (' + s.name + ')'));
+  colsM.push('Monthly Total');
+  csv += '\n--- MONTHLY ROLLUP ---\n' + colsM.map(c=>`"${c}"`).join(',') + '\n';
+  months.forEach(m => {
+    const row = [m.month];
+    sites.forEach(s => row.push(m.siteCosts[s.code]||0));
+    row.push(m.total);
+    csv += row.map(v=>typeof v==='string'?`"${v}"`:v).join(',') + '\n';
+  });
+  const totRow = ['ANNUAL TOTAL'];
+  sites.forEach(s => totRow.push(annualTotal.siteCosts[s.code]||0));
+  totRow.push(annualTotal.total);
+  csv += totRow.map(v=>typeof v==='string'?`"${v}"`:v).join(',') + '\n';
+  const a = Object.assign(document.createElement('a'), {
+    href: URL.createObjectURL(new Blob([csv],{type:'text/csv'})),
+    download: `AnnualSummary_${annYear}.csv`
+  });
+  a.click();
+}
+
+async function pushAnnualToSheets() {
+  if (!annData) return;
+  const btn = document.getElementById('ann-push-btn');
+  btn.textContent = '⏳ Pushing…'; btn.disabled = true;
+  try {
+    const res  = await fetch(`${WEB_APP_URL}?action=buildAnnualSummary&year=${annYear}`);
+    const data = await res.json();
+    btn.textContent = data.success ? '✓ Pushed to Sheets' : '✗ ' + (data.error||'Error');
+    btn.classList.toggle('success', !!data.success);
+  } catch(err) { btn.textContent = '✗ ' + err.message; }
+  setTimeout(() => { btn.textContent = '📥 Push to Sheets'; btn.disabled=false; btn.classList.remove('success'); }, 3000);
+}
+
+// ══════════════════════════════════════════════════════════════════════════
+// UTILS
+// ══════════════════════════════════════════════════════════════════════════
+function escHtml(s) {
+  return String(s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
+}
+
+// Close modals on backdrop click
+document.getElementById('slip-modal').addEventListener('click', e => {
+  if (e.target === document.getElementById('slip-modal')) closeSlipModal();
+});
+document.getElementById('banking-modal').addEventListener('click', e => {
+  if (e.target === document.getElementById('banking-modal')) closeBankingEditor();
+});
+
+// Init Site Earnings period label
+renderSePeriodLabel();
+</script>
+</body>
+</html>
