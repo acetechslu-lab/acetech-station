@@ -345,8 +345,14 @@ table.payroll tfoot td.ded-tot{color:var(--red);}
       <div style="font-family:'Barlow Condensed',sans-serif;font-size:20px;font-weight:700;color:var(--white);">⚙ Employee Banking &amp; Payroll Details</div>
       <button onclick="closeBankingEditor()" style="background:none;border:none;color:var(--muted);font-size:20px;cursor:pointer;">✕</button>
     </div>
-    <div style="padding:0 24px 8px;font-size:12px;color:var(--muted);background:rgba(201,162,39,.05);border-bottom:1px solid var(--border);padding:10px 24px;">
-      Fill in banking details for each employee. <strong style="color:var(--gold)">Payee Name</strong> = who appears in the bank CSV (institution name or employee name). <strong style="color:var(--gold)">Indiv A/C#</strong> = member's personal account at the institution (used in addenda for credit union payments).
+    <div style="padding:10px 24px;border-bottom:1px solid var(--border);background:rgba(201,162,39,.05);font-size:12px;color:var(--muted);">
+      Fill in banking details for each employee. <strong style="color:var(--gold)">Payee Name</strong> = who appears in the bank CSV. <strong style="color:var(--gold)">Indiv A/C#</strong> = member's personal CU account.
+    </div>
+    <div style="padding:10px 24px;border-bottom:1px solid var(--border);display:flex;align-items:center;gap:12px;flex-wrap:wrap;background:rgba(255,255,255,.02);">
+      <label style="color:var(--muted);font-size:12px;white-space:nowrap;font-weight:600;">Set Due Date for all:</label>
+      <input type="date" id="global-due-date" style="background:var(--surface);border:1px solid var(--border);color:var(--white);border-radius:6px;padding:5px 10px;font-size:12px;cursor:pointer;">
+      <button onclick="applyGlobalDueDate()" style="padding:5px 14px;background:var(--gold);color:#0a0f1a;border:none;border-radius:6px;cursor:pointer;font-size:12px;font-weight:700;">Apply to All</button>
+      <span style="color:var(--muted);font-size:11px;">(Each employee's due date can then be edited individually)</span>
     </div>
     <div style="overflow-x:auto;padding:0 24px 24px;">
       <table id="banking-table" style="width:100%;border-collapse:collapse;font-size:12px;margin-top:16px;min-width:1100px;">
@@ -360,9 +366,8 @@ table.payroll tfoot td.ded-tot{color:var(--red);}
             <th style="padding:8px 10px;text-align:left;color:var(--muted);font-size:10px;text-transform:uppercase;letter-spacing:1px;border-bottom:1px solid var(--border);">A/C Number</th>
             <th style="padding:8px 10px;text-align:left;color:var(--muted);font-size:10px;text-transform:uppercase;letter-spacing:1px;border-bottom:1px solid var(--border);">Type</th>
             <th style="padding:8px 10px;text-align:left;color:var(--muted);font-size:10px;text-transform:uppercase;letter-spacing:1px;border-bottom:1px solid var(--border);">Indiv A/C #</th>
-            <th style="padding:8px 10px;text-align:right;color:var(--muted);font-size:10px;text-transform:uppercase;letter-spacing:1px;border-bottom:1px solid var(--border);">Health Ins</th>
-            <th style="padding:8px 10px;text-align:right;color:var(--muted);font-size:10px;text-transform:uppercase;letter-spacing:1px;border-bottom:1px solid var(--border);">PAYE/Period</th>
-            <th style="padding:8px 10px;text-align:right;color:var(--muted);font-size:10px;text-transform:uppercase;letter-spacing:1px;border-bottom:1px solid var(--border);">Allow/Day</th>
+            <th style="padding:8px 10px;text-align:center;color:var(--muted);font-size:10px;text-transform:uppercase;letter-spacing:1px;border-bottom:1px solid var(--border);">DR/CR</th>
+            <th style="padding:8px 10px;text-align:left;color:var(--muted);font-size:10px;text-transform:uppercase;letter-spacing:1px;border-bottom:1px solid var(--border);">Due Date</th>
             <th style="padding:8px 10px;text-align:left;color:var(--muted);font-size:10px;text-transform:uppercase;letter-spacing:1px;border-bottom:1px solid var(--border);">Pay Cycle</th>
           </tr>
         </thead>
@@ -706,26 +711,31 @@ async function saveAdjustments() {
 // ══════════════════════════════════════════════════════════════════════════
 function exportBankCSV() {
   if (!payrollData.length) { alert('Load payroll first.'); return; }
-  const payDateStr = fmtBankDate(new Date(currentPeriod.payDate));
+  const defaultDueStr = fmtBankDate(new Date(currentPeriod.payDate));
 
   const rows = [['Full Name','Individual ID','R/T Number','A/C Number','Account Type','Amount','Due Date','DR/CR','Addenda']];
 
+  // Merge per-employee dueDate/drcr from banking editor (allEmployees) into payrollData
+  const bankMap = {};
+  (allEmployees || []).forEach(e => { bankMap[e.id] = e; });
+
   payrollData.forEach(emp => {
     if (r2(emp.netPay) <= 0) return;
-    if (!emp.acctNumber) return; // Skip employees without bank details
+    const bankEmp   = bankMap[emp.id] || {};
     const payeeName = emp.payeeName || emp.name;
     const amount    = r2(emp.netPay).toFixed(2);
     const routing   = emp.routing || '';
-    const acctNum   = emp.acctNumber;
+    const acctNum   = emp.acctNumber || '';
     const acctType  = emp.acctType || 'DDA';
+    const drcr      = bankEmp.drcr || emp.drcr || 'CREDIT';
+    const dueDate   = bankEmp.dueDate ? fmtBankDate(new Date(bankEmp.dueDate)) : defaultDueStr;
     let addenda;
     if (emp.cuAcct) {
-      // Credit Union: addenda identifies the member's personal CU account
       addenda = `Payment by ACEtech to ${emp.name} a/c ${emp.cuAcct}`;
     } else {
       addenda = `Regular Salary`;
     }
-    rows.push([payeeName, emp.nic, `"${routing}"`, acctNum, acctType, amount, payDateStr, 'CREDIT', addenda]);
+    rows.push([payeeName, emp.nic, `"${routing}"`, acctNum, acctType, amount, dueDate, drcr, addenda]);
   });
 
   const csv = rows.map(r => r.map(v => {
@@ -894,6 +904,12 @@ async function openBankingEditor() {
     const data = await res.json();
     if (!data.success) throw new Error(data.error);
     allEmployees = data.employees;
+    // Pre-fill dueDate from current payroll period pay date
+    const defaultDue = currentPeriod ? currentPeriod.payDate : '';
+    allEmployees.forEach(e => { if (!e.dueDate) e.dueDate = defaultDue; });
+    // Set the global date picker
+    const globalPicker = document.getElementById('global-due-date');
+    if (globalPicker && defaultDue) globalPicker.value = defaultDue;
     renderBankingTable();
   } catch(err) {
     tbody.innerHTML = `<tr><td colspan="12" style="text-align:center;padding:20px;color:var(--red);">Error: ${escHtml(err.message)}</td></tr>`;
@@ -920,9 +936,13 @@ function renderBankingTable() {
         </select>
       </td>
       <td style="padding:6px 4px;"><input class="edit-cell" style="width:100px;" type="text" data-i="${i}" data-f="cuAcct" value="${escHtml(emp.cuAcct)}" placeholder="CU member #"></td>
-      <td style="padding:6px 4px;"><input class="edit-cell" style="width:80px;" type="number" data-i="${i}" data-f="healthIns" value="${emp.healthIns||''}" placeholder="0.00" step="0.01" min="0"></td>
-      <td style="padding:6px 4px;"><input class="edit-cell" style="width:80px;" type="number" data-i="${i}" data-f="payePeriod" value="${emp.payePeriod||''}" placeholder="0.00" step="0.01" min="0"></td>
-      <td style="padding:6px 4px;"><input class="edit-cell" style="width:70px;" type="number" data-i="${i}" data-f="allowDay" value="${emp.allowDay||''}" placeholder="0.00" step="0.01" min="0"></td>
+      <td style="padding:6px 4px;">
+        <select class="edit-cell" style="width:90px;" data-i="${i}" data-f="drcr">
+          <option value="CREDIT" ${(emp.drcr||'CREDIT')==='CREDIT'?'selected':''}>CREDIT</option>
+          <option value="DEBIT"  ${emp.drcr==='DEBIT'?'selected':''}>DEBIT</option>
+        </select>
+      </td>
+      <td style="padding:6px 4px;"><input class="edit-cell" style="width:130px;background:var(--surface);border:1px solid var(--border);color:var(--white);border-radius:4px;padding:4px 6px;" type="date" data-i="${i}" data-f="dueDate" value="${emp.dueDate||''}" ></td>
       <td style="padding:6px 4px;">
         <select class="edit-cell" style="width:110px;" data-i="${i}" data-f="payCycle">
           <option value="Fortnightly" ${emp.payCycle!=='Monthly'?'selected':''}>Fortnightly</option>
@@ -960,9 +980,7 @@ async function saveBankingDetails() {
         acctNumber:emp.acctNumber || '',
         acctType:  emp.acctType   || 'DDA',
         cuAcct:    emp.cuAcct     || '',
-        healthIns: emp.healthIns  || 0,
-        payePeriod:emp.payePeriod || 0,
-        allowDay:  emp.allowDay   || 0,
+        drcr:      emp.drcr       || 'CREDIT',
         paycycle:  emp.payCycle   || 'Fortnightly'
       });
       const res  = await fetch(`${WEB_APP_URL}?${p}`);
@@ -978,6 +996,15 @@ async function saveBankingDetails() {
     btn.textContent = 'Save All Banking Details';
     if (!errors) closeBankingEditor();
   }, 2000);
+}
+
+function applyGlobalDueDate() {
+  const val = document.getElementById('global-due-date').value;
+  if (!val) return;
+  // Update in-memory allEmployees
+  allEmployees.forEach((e, i) => { e.dueDate = val; });
+  // Update all date inputs in the table
+  document.querySelectorAll('#banking-tbody [data-f="dueDate"]').forEach(inp => { inp.value = val; });
 }
 
 function closeBankingEditor() {
