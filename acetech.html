@@ -503,31 +503,38 @@
 
     <!-- ── PANE: SECURITY ── -->
     <div class="ap-pane active" id="ap-security">
-      <div class="admin-section-title">Change Station PIN</div>
+      <div class="admin-section-title">Change Admin Panel Password</div>
+      <div style="font-size:11px;color:var(--muted);margin-bottom:10px;">Protects the Admin Panel. Saved in Google Sheets.</div>
       <div class="admin-row">
-        <input type="password" class="admin-input" id="new-pin" placeholder="New 4-digit PIN" maxlength="4" pattern="\d{4}">
-        <input type="password" class="admin-input" id="confirm-pin" placeholder="Confirm PIN" maxlength="4" pattern="\d{4}">
-        <button class="admin-add-btn" onclick="changePin()">Save</button>
-      </div>
-      <div class="auth-error" id="pin-change-error" style="margin-top:-12px;margin-bottom:20px;"></div>
-
-      <div class="admin-section-title">Change Admin Password</div>
-      <div class="admin-row">
-        <input type="password" class="admin-input" id="new-admin-pass" placeholder="New admin password">
+        <input type="password" class="admin-input" id="new-admin-pass" placeholder="New admin password (min 6 chars)">
         <button class="admin-add-btn" onclick="changeAdminPass()">Save</button>
       </div>
-      <div class="auth-error" id="admin-pass-error" style="margin-top:-12px;margin-bottom:12px;"></div>
+      <div class="auth-error" id="admin-pass-error" style="margin-top:-12px;margin-bottom:24px;"></div>
+
+      <div class="admin-section-title">Change Manual Entry Password</div>
+      <div style="font-size:11px;color:var(--muted);margin-bottom:10px;">Separate password for the Manual Clock Entry screen. Saved in Google Sheets.</div>
+      <div class="admin-row">
+        <input type="password" class="admin-input" id="new-manual-pass" placeholder="New manual entry password (min 6 chars)">
+        <button class="admin-add-btn" onclick="changeManualPass()">Save</button>
+      </div>
+      <div class="auth-error" id="manual-pass-error" style="margin-top:-12px;margin-bottom:12px;"></div>
     </div>
 
     <!-- ── PANE: DEVICES ── -->
     <div class="ap-pane" id="ap-devices">
-      <div class="admin-section-title">Approved Devices</div>
-      <div class="device-list" id="device-list" style="margin-bottom:24px;"></div>
+      <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:8px;">
+        <div class="admin-section-title" style="margin-bottom:0;">Registered Devices</div>
+        <button onclick="loadDeviceList()" style="padding:4px 12px;background:transparent;border:1px solid var(--border);border-radius:12px;color:var(--muted);font-size:11px;cursor:pointer;">🔄 Refresh</button>
+      </div>
+      <div class="device-list" id="device-list" style="margin-bottom:24px;">
+        <div style="color:var(--muted);text-align:center;padding:12px;font-size:12px;">Click Refresh to load devices</div>
+      </div>
 
-      <div class="admin-section-title">Add Device by Code</div>
+      <div class="admin-section-title">Add New Device</div>
+      <div style="font-size:11px;color:var(--muted);margin-bottom:10px;">Enter a device name and a 4-digit PIN. Supervisors use this PIN to unlock the screen on that device.</div>
       <div class="admin-row">
-        <input type="text" class="admin-input" id="new-device-code" placeholder="Device fingerprint code" autocomplete="off">
-        <input type="text" class="admin-input" id="new-device-name" placeholder="Device name" autocomplete="off">
+        <input type="text" class="admin-input" id="new-device-name" placeholder="Device name (e.g. Tablet 1)" autocomplete="off">
+        <input type="password" class="admin-input" id="new-device-pin" placeholder="4-digit PIN" maxlength="4" pattern="\d{4}">
         <button class="admin-add-btn" onclick="addDeviceManually()">Add</button>
       </div>
       <div class="auth-error" id="device-add-error" style="margin-top:-12px;margin-bottom:0;"></div>
@@ -610,6 +617,45 @@
       </div>
     </div>
 
+  </div>
+</div>
+
+
+<!-- ══════════════════════════════════════════════
+     EDIT EMPLOYEE MODAL
+══════════════════════════════════════════════ -->
+<div id="edit-emp-overlay" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,0.75);z-index:10000;align-items:center;justify-content:center;">
+  <div style="background:#111827;border:1px solid var(--border);border-radius:16px;padding:28px 28px 24px;width:min(94vw,480px);box-shadow:0 8px 40px rgba(0,0,0,0.6);">
+    <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:20px;">
+      <div style="font-size:16px;font-weight:700;color:var(--text);">✏️ Edit Employee</div>
+      <button onclick="closeEditEmployee()" style="background:none;border:none;color:var(--muted);font-size:20px;cursor:pointer;line-height:1;">✕</button>
+    </div>
+    <input type="hidden" id="edit-emp-id">
+    <div style="display:flex;flex-direction:column;gap:10px;">
+      <input type="text" class="admin-input" id="edit-emp-name" placeholder="Full Name (e.g. Smith, John)" style="width:100%;box-sizing:border-box;">
+      <div style="display:flex;gap:8px;">
+        <input type="text" class="admin-input" id="edit-emp-nic" placeholder="NIC Number" style="flex:1;">
+        <input type="number" class="admin-input" id="edit-emp-rate" placeholder="Rate/hr ($)" step="0.01" style="flex:1;">
+      </div>
+      <div style="display:flex;gap:8px;">
+        <select class="admin-input" id="edit-emp-position" style="flex:1;">
+          <option value="">Select Position...</option>
+          <option>Foreman</option><option>Mason</option><option>Carpenter</option>
+          <option>Helper</option><option>Labourer</option><option>Driver</option>
+          <option>Supervisor</option><option>Other</option>
+        </select>
+        <select class="admin-input" id="edit-emp-paycycle" style="flex:1;">
+          <option value="Fortnightly">Fortnightly</option>
+          <option value="Monthly">Monthly</option>
+        </select>
+      </div>
+      <input type="text" class="admin-input" id="edit-emp-bank" placeholder="Bank Account (optional)" style="width:100%;box-sizing:border-box;">
+    </div>
+    <div id="edit-emp-error" style="font-size:12px;color:var(--red);min-height:18px;margin-top:8px;text-align:center;"></div>
+    <div style="display:flex;gap:10px;margin-top:16px;">
+      <button onclick="closeEditEmployee()" style="flex:1;padding:10px;background:rgba(255,255,255,0.07);border:1px solid var(--border);border-radius:8px;color:var(--muted);font-size:13px;cursor:pointer;">Cancel</button>
+      <button onclick="saveEditEmployee()" style="flex:2;padding:10px;background:var(--gold);border:none;border-radius:8px;color:#0a0f1a;font-weight:700;font-size:13px;cursor:pointer;">Save Changes</button>
+    </div>
   </div>
 </div>
 
@@ -922,17 +968,39 @@ async function loadEmployeesFromSheet() {
 }
 
 // --------------------------------------------------
-// STORAGE HELPERS (localStorage for persistence)
+// STORAGE HELPERS (localStorage cache + GAS source of truth)
 // --------------------------------------------------
 const store = {
   get: k => { try { return JSON.parse(localStorage.getItem('acetech_'+k)); } catch { return null; } },
   set: (k,v) => localStorage.setItem('acetech_'+k, JSON.stringify(v)),
 };
 
-function getPin()        { return store.get('pin')        || DEFAULT_PIN; }
-function getAdminPass()  { return store.get('admin_pass') || DEFAULT_ADMIN_PASS; }
-function getDevices()    { return store.get('devices')    || []; }
-function saveDevices(d)  { store.set('devices', d); }
+function getAdminPass()   { return store.get('admin_pass')  || DEFAULT_ADMIN_PASS; }
+function getManualPass()  { return store.get('manual_pass') || 'manual2025'; }
+function getDeviceName()  { return store.get('device_name') || ''; }  // This device's registered name
+function getDevicePin()   { return store.get('device_pin')  || DEFAULT_PIN; } // Cached for offline
+
+// Legacy — kept for backward compat with isDeviceApproved() calls
+function getPin()         { return getDevicePin(); }
+
+// Verify password against GAS; falls back to local cache if offline
+async function verifyPassWithGAS(type, pass) {
+  const action = type === 'Admin' ? 'verifyAdminPass' : 'verifyManualPass';
+  try {
+    const res  = await gasFetch(`${WEB_APP_URL}?action=${action}&pass=${encodeURIComponent(pass)}`);
+    const data = await res.json();
+    if (data.success) {
+      if (data.valid) {
+        if (type === 'Admin')  store.set('admin_pass', pass);
+        if (type === 'Manual') store.set('manual_pass', pass);
+      }
+      return data.valid;
+    }
+  } catch(e) { /* offline */ }
+  return pass === (type === 'Admin' ? getAdminPass() : getManualPass());
+}
+
+function isDeviceRegistered() { return !!getDeviceName(); }
 
 // --------------------------------------------------
 // DEVICE FINGERPRINT
@@ -961,8 +1029,7 @@ function getDeviceFingerprint() {
 const DEVICE_FP = getDeviceFingerprint();
 
 function isDeviceApproved() {
-  const devices = getDevices();
-  return devices.some(d => d.code === DEVICE_FP);
+  return isDeviceRegistered(); // device_name stored in localStorage after registration
 }
 
 // --------------------------------------------------
@@ -1050,8 +1117,25 @@ function updatePinDots(filled = true) {
   }
 }
 
-function checkPin() {
-  if (pinEntry === getPin()) {
+async function checkPin() {
+  const entered = pinEntry;
+  const deviceName = getDeviceName();
+  let valid = false;
+
+  if (deviceName) {
+    try {
+      const res  = await gasFetch(`${WEB_APP_URL}?action=verifyDevicePin&name=${encodeURIComponent(deviceName)}&pin=${encodeURIComponent(entered)}`);
+      const data = await res.json();
+      if (data.success) {
+        valid = data.valid;
+        if (valid && data.pin) store.set('device_pin', data.pin); // refresh cache
+      } else { valid = entered === getDevicePin(); } // GAS error — use cache
+    } catch(e) { valid = entered === getDevicePin(); } // offline — use cache
+  } else {
+    valid = entered === getDevicePin(); // no device registered yet
+  }
+
+  if (valid) {
     showApp();
     pinEntry = '';
     updatePinDots();
@@ -1126,16 +1210,35 @@ function showAdminRegister() {
   showScreen('screen-admin-register');
 }
 
-function registerThisDevice() {
+async function registerThisDevice() {
   const pass = document.getElementById('reg-admin-pass').value;
-  const name = document.getElementById('reg-device-name').value.trim() || 'New Device';
-  if (pass !== getAdminPass()) {
-    document.getElementById('reg-admin-error').classList.add('show');
-    return;
-  }
-  const devices = getDevices();
-  devices.push({ code: DEVICE_FP, name });
-  saveDevices(devices);
+  const name = document.getElementById('reg-device-name').value.trim();
+  const errEl = document.getElementById('reg-admin-error');
+  if (!name) { errEl.textContent = 'Enter a device name.'; errEl.classList.add('show'); return; }
+
+  // Verify admin password
+  const passOk = await verifyPassWithGAS('Admin', pass);
+  if (!passOk) { errEl.textContent = 'Incorrect admin password.'; errEl.classList.add('show'); return; }
+
+  // Look up this device's PIN from the Devices sheet
+  try {
+    const res  = await gasFetch(`${WEB_APP_URL}?action=verifyDevicePin&name=${encodeURIComponent(name)}&pin=0000`);
+    const data = await res.json();
+    if (data.success && !data.deviceFound) {
+      errEl.textContent = 'Device "' + name + '" not found in Sheets. Add it in Admin Panel → Devices first.';
+      errEl.classList.add('show'); return;
+    }
+    // Fetch actual PIN for this device so it can be cached for offline use
+    const res2  = await gasFetch(`${WEB_APP_URL}?action=getDevicesList`);
+    const data2 = await res2.json();
+    if (data2.success) {
+      const dev = (data2.devices || []).find(d => d.name.toLowerCase() === name.toLowerCase());
+      if (dev) { store.set('device_pin', dev.pin); }
+    }
+  } catch(e) { /* offline — skip PIN cache */ }
+
+  store.set('device_name', name);
+  errEl.classList.remove('show');
   showScreen('screen-pin');
 }
 
@@ -1148,12 +1251,16 @@ function showAdminFromPin() {
   showScreen('screen-admin-login');
 }
 
-function doAdminLogin() {
-  const pass = document.getElementById('admin-login-pass').value;
-  if (pass !== getAdminPass()) {
-    document.getElementById('admin-login-error').classList.add('show');
+async function doAdminLogin() {
+  const pass  = document.getElementById('admin-login-pass').value;
+  const errEl = document.getElementById('admin-login-error');
+  errEl.textContent = 'Verifying…'; errEl.classList.add('show');
+  const ok = await verifyPassWithGAS('Admin', pass);
+  if (!ok) {
+    errEl.textContent = 'Incorrect admin password.'; errEl.classList.add('show');
     return;
   }
+  errEl.classList.remove('show');
   openAdminPanel();
 }
 
@@ -1165,12 +1272,10 @@ function promptAdmin() {
 }
 
 function openAdminPanel() {
-  renderDeviceList();
-  document.getElementById('new-pin').value = '';
-  document.getElementById('confirm-pin').value = '';
-  document.getElementById('new-admin-pass').value = '';
-  document.getElementById('pin-change-error').classList.remove('show');
+  document.getElementById('new-admin-pass').value  = '';
+  document.getElementById('new-manual-pass').value = '';
   document.getElementById('admin-pass-error').classList.remove('show');
+  document.getElementById('manual-pass-error').classList.remove('show');
   document.getElementById('device-add-error').classList.remove('show');
   showScreen('screen-admin');
 }
@@ -1187,67 +1292,122 @@ function closeAdmin() {
   else showScreen('screen-blocked');
 }
 
-function renderDeviceList() {
-  const devices = getDevices();
+async function loadDeviceList() {
   const list = document.getElementById('device-list');
-  if (devices.length === 0) {
-    list.innerHTML = '<div class="no-devices">No approved devices yet.</div>';
-    return;
+  list.innerHTML = '<div style="color:var(--muted);text-align:center;padding:12px;font-size:12px;">Loading…</div>';
+  try {
+    const res  = await gasFetch(`${WEB_APP_URL}?action=getDevicesList`);
+    const data = await res.json();
+    if (!data.success) throw new Error(data.error || 'Failed');
+    const devices = data.devices || [];
+    const myName  = getDeviceName();
+    if (devices.length === 0) {
+      list.innerHTML = '<div style="color:var(--muted);text-align:center;padding:12px;font-size:12px;">No devices registered yet.</div>';
+      return;
+    }
+    list.innerHTML = devices.map(d => {
+      const isThis = myName && d.name.toLowerCase() === myName.toLowerCase();
+      const safeName = d.name.replace(/\\/g,'\\\\').replace(/'/g,"\\'");
+      return `
+      <div class="device-item">
+        <div>
+          <div class="device-item-name">${d.name}${isThis ? ' <span style="color:var(--gold);font-size:11px;">(this device)</span>' : ''}</div>
+          <div class="device-item-id">PIN: •••• &nbsp;·&nbsp; Added: ${d.dateAdded || '—'}</div>
+        </div>
+        <div style="display:flex;gap:5px;">
+          <button class="device-remove" style="background:rgba(59,130,246,0.15);border-color:rgba(59,130,246,0.3);color:#60a5fa;"
+            onclick="changeDevicePin('${safeName}')">Change PIN</button>
+          <button class="device-remove" onclick="removeDeviceGAS('${safeName}')">Remove</button>
+        </div>
+      </div>`;
+    }).join('');
+  } catch(err) {
+    list.innerHTML = `<div style="color:var(--red);text-align:center;padding:12px;font-size:12px;">Error: ${err.message}</div>`;
   }
-  list.innerHTML = devices.map((d, i) => `
-    <div class="device-item">
-      <div>
-        <div class="device-item-name">${d.name}${d.code === DEVICE_FP ? ' <span style="color:var(--gold);font-size:11px;">(this device)</span>' : ''}</div>
-        <div class="device-item-id">${d.code}</div>
-      </div>
-      <button class="device-remove" onclick="removeDevice(${i})">Remove</button>
-    </div>
-  `).join('');
 }
 
-function removeDevice(idx) {
-  const devices = getDevices();
-  devices.splice(idx, 1);
-  saveDevices(devices);
-  renderDeviceList();
-}
+function renderDeviceList() { loadDeviceList(); }
 
-function addDeviceManually() {
-  const code = document.getElementById('new-device-code').value.trim().toUpperCase();
-  const name = document.getElementById('new-device-name').value.trim() || 'Device';
+async function removeDeviceGAS(name) {
+  if (!confirm('Remove device "' + name + '"?')) return;
   const errEl = document.getElementById('device-add-error');
-  if (!code) { errEl.textContent = 'Enter a device code.'; errEl.classList.add('show'); return; }
-  const devices = getDevices();
-  if (devices.some(d => d.code === code)) { errEl.textContent = 'Device already registered.'; errEl.classList.add('show'); return; }
-  devices.push({ code, name });
-  saveDevices(devices);
-  document.getElementById('new-device-code').value = '';
-  document.getElementById('new-device-name').value = '';
-  errEl.classList.remove('show');
-  renderDeviceList();
+  try {
+    const res  = await gasFetch(`${WEB_APP_URL}?action=removeDevice&name=${encodeURIComponent(name)}`);
+    const data = await res.json();
+    if (data.success) {
+      if (name.toLowerCase() === getDeviceName().toLowerCase()) store.set('device_name', '');
+      loadDeviceList();
+    } else { errEl.textContent = data.error || 'Remove failed.'; errEl.classList.add('show'); }
+  } catch(err) { errEl.textContent = 'Network error.'; errEl.classList.add('show'); }
 }
 
-function changePin() {
-  const p1 = document.getElementById('new-pin').value;
-  const p2 = document.getElementById('confirm-pin').value;
-  const errEl = document.getElementById('pin-change-error');
-  if (!/^\d{4}$/.test(p1)) { errEl.textContent = 'PIN must be exactly 4 digits.'; errEl.classList.add('show'); return; }
-  if (p1 !== p2) { errEl.textContent = 'PINs do not match.'; errEl.classList.add('show'); return; }
-  store.set('pin', p1);
-  errEl.textContent = 'OK PIN updated successfully.'; errEl.style.color = 'var(--green)'; errEl.classList.add('show');
-  setTimeout(() => { errEl.classList.remove('show'); errEl.style.color = ''; }, 2000);
-  document.getElementById('new-pin').value = '';
-  document.getElementById('confirm-pin').value = '';
+async function changeDevicePin(name) {
+  const pin = prompt('Enter new 4-digit PIN for "' + name + '":');
+  if (!pin) return;
+  if (!/^\d{4}$/.test(pin)) { alert('PIN must be exactly 4 digits.'); return; }
+  const errEl = document.getElementById('device-add-error');
+  try {
+    const res  = await gasFetch(`${WEB_APP_URL}?action=updateDevicePin&name=${encodeURIComponent(name)}&pin=${encodeURIComponent(pin)}`);
+    const data = await res.json();
+    if (data.success) {
+      if (name.toLowerCase() === getDeviceName().toLowerCase()) store.set('device_pin', pin);
+      alert('PIN updated for ' + name);
+    } else { errEl.textContent = data.error || 'Update failed.'; errEl.classList.add('show'); }
+  } catch(err) { errEl.textContent = 'Network error.'; errEl.classList.add('show'); }
 }
 
-function changeAdminPass() {
+async function addDeviceManually() {
+  const name  = document.getElementById('new-device-name').value.trim();
+  const pin   = document.getElementById('new-device-pin').value.trim();
+  const errEl = document.getElementById('device-add-error');
+  if (!name)                { errEl.textContent = 'Enter a device name.';          errEl.classList.add('show'); return; }
+  if (!/^\d{4}$/.test(pin)) { errEl.textContent = 'PIN must be exactly 4 digits.'; errEl.classList.add('show'); return; }
+  try {
+    const res  = await gasFetch(`${WEB_APP_URL}?action=addDevice&name=${encodeURIComponent(name)}&pin=${encodeURIComponent(pin)}`);
+    const data = await res.json();
+    if (data.success) {
+      document.getElementById('new-device-name').value = '';
+      document.getElementById('new-device-pin').value  = '';
+      errEl.classList.remove('show');
+      loadDeviceList();
+    } else { errEl.textContent = data.error || 'Add failed.'; errEl.classList.add('show'); }
+  } catch(err) { errEl.textContent = 'Network error.'; errEl.classList.add('show'); }
+}
+
+
+
+async function changeAdminPass() {
   const p = document.getElementById('new-admin-pass').value;
   const errEl = document.getElementById('admin-pass-error');
   if (p.length < 6) { errEl.textContent = 'Password must be at least 6 characters.'; errEl.classList.add('show'); return; }
-  store.set('admin_pass', p);
-  errEl.textContent = 'OK Admin password updated.'; errEl.style.color = 'var(--green)'; errEl.classList.add('show');
-  setTimeout(() => { errEl.classList.remove('show'); errEl.style.color = ''; }, 2000);
-  document.getElementById('new-admin-pass').value = '';
+  errEl.textContent = 'Saving…'; errEl.style.color = 'var(--muted)'; errEl.classList.add('show');
+  try {
+    const res  = await gasFetch(`${WEB_APP_URL}?action=updateAdminPass&pass=${encodeURIComponent(p)}`);
+    const data = await res.json();
+    if (data.success) {
+      store.set('admin_pass', p);
+      errEl.textContent = '✔ Admin password updated.'; errEl.style.color = 'var(--green)'; errEl.classList.add('show');
+      setTimeout(() => { errEl.classList.remove('show'); errEl.style.color = ''; }, 2500);
+      document.getElementById('new-admin-pass').value = '';
+    } else { errEl.textContent = data.error || 'Save failed.'; errEl.style.color = 'var(--red)'; }
+  } catch(err) { errEl.textContent = 'Network error.'; errEl.style.color = 'var(--red)'; }
+}
+
+async function changeManualPass() {
+  const p = document.getElementById('new-manual-pass').value;
+  const errEl = document.getElementById('manual-pass-error');
+  if (p.length < 6) { errEl.textContent = 'Password must be at least 6 characters.'; errEl.classList.add('show'); return; }
+  errEl.textContent = 'Saving…'; errEl.style.color = 'var(--muted)'; errEl.classList.add('show');
+  try {
+    const res  = await gasFetch(`${WEB_APP_URL}?action=updateManualPass&pass=${encodeURIComponent(p)}`);
+    const data = await res.json();
+    if (data.success) {
+      store.set('manual_pass', p);
+      errEl.textContent = '✔ Manual entry password updated.'; errEl.style.color = 'var(--green)'; errEl.classList.add('show');
+      setTimeout(() => { errEl.classList.remove('show'); errEl.style.color = ''; }, 2500);
+      document.getElementById('new-manual-pass').value = '';
+    } else { errEl.textContent = data.error || 'Save failed.'; errEl.style.color = 'var(--red)'; }
+  } catch(err) { errEl.textContent = 'Network error.'; errEl.style.color = 'var(--red)'; }
 }
 
 // --------------------------------------------------
@@ -1294,10 +1454,13 @@ function switchTab(tab) {
 // --------------------------------------------------
 let manualEntryUnlocked = false;
 
-function unlockManualEntry() {
+async function unlockManualEntry() {
   const pass  = document.getElementById('entry-pass-input').value;
   const errEl = document.getElementById('entry-pass-error');
-  if (pass !== getAdminPass()) {
+  errEl.textContent = 'Verifying…'; errEl.classList.add('show');
+  const ok = await verifyPassWithGAS('Manual', pass);
+  if (!ok) {
+    errEl.textContent = 'Incorrect password.';
     errEl.classList.add('show');
     document.getElementById('entry-pass-input').value = '';
     return;
@@ -2373,16 +2536,82 @@ async function loadEmployeeList() {
           <div style="font-weight:600;color:var(--text);">${emp.name}</div>
           <div style="color:var(--muted);font-size:11px;">${emp.id} &nbsp;·&nbsp; ${emp.position} &nbsp;·&nbsp; $${parseFloat(emp.rate||0).toFixed(2)}/hr &nbsp;·&nbsp; ${emp.payCycle || 'Fortnightly'}</div>
         </div>
-        <button onclick="removeEmployee('${emp.id}','${emp.name.replace(/'/g,"\'")}')"
-          style="padding:4px 10px;background:rgba(218,54,51,0.15);border:1px solid rgba(218,54,51,0.3);
-                 color:#f85149;border-radius:6px;font-size:11px;cursor:pointer;">
-          Remove
-        </button>
+        <div style="display:flex;gap:5px;">
+          <button onclick="openEditEmployee('${emp.id}','${emp.name.replace(/'/g,"\'").replace(/"/g,"&quot;")}','${(emp.nic||'').replace(/'/g,"\'").replace(/"/g,"&quot;")}','${(emp.position||'').replace(/'/g,"\'").replace(/"/g,"&quot;")}','${emp.rate||0}','${emp.payCycle||"Fortnightly"}','${(emp.bank||'').replace(/'/g,"\'").replace(/"/g,"&quot;")}')"
+            style="padding:4px 10px;background:rgba(59,130,246,0.15);border:1px solid rgba(59,130,246,0.3);
+                   color:#60a5fa;border-radius:6px;font-size:11px;cursor:pointer;">
+            Edit
+          </button>
+          <button onclick="removeEmployee('${emp.id}','${emp.name.replace(/'/g,"\'")}')"
+            style="padding:4px 10px;background:rgba(218,54,51,0.15);border:1px solid rgba(218,54,51,0.3);
+                   color:#f85149;border-radius:6px;font-size:11px;cursor:pointer;">
+            Remove
+          </button>
+        </div>
       </div>
     `).join('');
   } catch(err) {
     listDiv.innerHTML = `<div style="color:var(--red);text-align:center;padding:12px;">Error: ${err.message}</div>`;
   }
+}
+
+function openEditEmployee(id, name, nic, position, rate, payCycle, bank) {
+  document.getElementById('edit-emp-id').value       = id;
+  document.getElementById('edit-emp-name').value     = name;
+  document.getElementById('edit-emp-nic').value      = nic;
+  document.getElementById('edit-emp-rate').value     = rate;
+  document.getElementById('edit-emp-bank').value     = bank;
+  document.getElementById('edit-emp-error').textContent = '';
+
+  // Set position dropdown
+  const posEl = document.getElementById('edit-emp-position');
+  posEl.value = position;
+  if (!posEl.value) { // position not in list — add it
+    const opt = document.createElement('option');
+    opt.value = position; opt.textContent = position;
+    posEl.appendChild(opt);
+    posEl.value = position;
+  }
+
+  // Set pay cycle dropdown
+  document.getElementById('edit-emp-paycycle').value = payCycle || 'Fortnightly';
+
+  // Show modal
+  const overlay = document.getElementById('edit-emp-overlay');
+  overlay.style.display = 'flex';
+}
+
+function closeEditEmployee() {
+  document.getElementById('edit-emp-overlay').style.display = 'none';
+}
+
+async function saveEditEmployee() {
+  const id       = document.getElementById('edit-emp-id').value;
+  const name     = document.getElementById('edit-emp-name').value.trim();
+  const nic      = document.getElementById('edit-emp-nic').value.trim();
+  const position = document.getElementById('edit-emp-position').value;
+  const rate     = document.getElementById('edit-emp-rate').value;
+  const payCycle = document.getElementById('edit-emp-paycycle').value;
+  const bank     = document.getElementById('edit-emp-bank').value.trim();
+  const errEl    = document.getElementById('edit-emp-error');
+
+  if (!name)     { errEl.textContent = 'Name is required.';     return; }
+  if (!position) { errEl.textContent = 'Position is required.'; return; }
+
+  errEl.textContent = 'Saving…';
+  try {
+    const params = new URLSearchParams({ action:'updateEmployeeFull', empId:id, name, nic, position, rate, payCycle, bank });
+    const res  = await gasFetch(`${WEB_APP_URL}?${params.toString()}`);
+    const data = await res.json();
+    if (data.success) {
+      // Update local EMPLOYEES cache
+      const emp = EMPLOYEES.find(e => e.id === id);
+      if (emp) { emp.name = name; emp.position = position; emp.rate = rate; emp.payCycle = payCycle; }
+      try { localStorage.setItem(EMPLOYEES_CACHE_KEY, JSON.stringify(EMPLOYEES)); } catch(e) {}
+      closeEditEmployee();
+      loadEmployeeList();
+    } else { errEl.textContent = data.error || 'Save failed.'; }
+  } catch(err) { errEl.textContent = 'Network error: ' + err.message; }
 }
 
 async function removeEmployee(empId, empName) {
@@ -2528,6 +2757,14 @@ function resetEmployee() {
   const pinIn = document.getElementById('pin-input');
   if (pinIn) { pinIn.value = ''; pinIn.focus(); }
 }
+
+
+// Close edit modal on outside click
+document.addEventListener('click', function(e){
+  const overlay = document.getElementById('edit-emp-overlay');
+  if (overlay && e.target === overlay) closeEditEmployee();
+});
+
 </script>
 </body>
 </html>
