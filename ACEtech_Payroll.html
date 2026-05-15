@@ -724,7 +724,7 @@ function exportBankCSV() {
     const bankEmp   = bankMap[emp.id] || {};
     const payeeName = emp.payeeName || emp.name;
     const amount    = r2(emp.netPay).toFixed(2);
-    const routing   = emp.routing || '';
+    const routing   = emp.routing ? String(emp.routing).padStart(9, '0') : '';
     const acctNum   = emp.acctNumber || '';
     const acctType  = emp.acctType || 'DDA';
     const drcr      = bankEmp.drcr || emp.drcr || 'CREDIT';
@@ -735,7 +735,8 @@ function exportBankCSV() {
     } else {
       addenda = `Regular Salary`;
     }
-    rows.push([payeeName, emp.nicNum || emp.nic, routing, acctNum, acctType, amount, dueDate, drcr, addenda]);
+    const nicId = emp.nicNum || (emp.id ? emp.id.replace(/^ACE/i, '') : '');
+    rows.push([payeeName, nicId, routing, acctNum, acctType, amount, dueDate, drcr, addenda]);
   });
 
   const csv = rows.map((r, rowIdx) => r.map((v, colIdx) => {
@@ -790,7 +791,7 @@ function buildPayslipHTML(emp) {
       <div class="ps-field"><div class="ps-field-label">Employee #</div><div class="ps-field-value">${escHtml(emp.id)}</div></div>
       <div class="ps-field"><div class="ps-field-label">Employee Name</div><div class="ps-field-value">${escHtml(emp.name)}</div></div>
       <div class="ps-field"><div class="ps-field-label">Position</div><div class="ps-field-value">${escHtml(emp.position)}</div></div>
-      <div class="ps-field"><div class="ps-field-label">NIC #</div><div class="ps-field-value">${escHtml(emp.nicNum || emp.nic)}</div></div>
+      <div class="ps-field"><div class="ps-field-label">NIC #</div><div class="ps-field-value">${escHtml(emp.nicNum || (emp.id ? emp.id.replace(/^ACE/i, '') : ''))}</div></div>
       <div class="ps-field"><div class="ps-field-label">Rate / Hour</div><div class="ps-field-value">$${r2(emp.rate).toFixed(2)}</div></div>
       <div class="ps-field"><div class="ps-field-label">Pay Cycle</div><div class="ps-field-value">${escHtml(emp.payCycle)}</div></div>
     </div>
