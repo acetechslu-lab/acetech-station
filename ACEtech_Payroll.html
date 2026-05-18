@@ -215,6 +215,7 @@ table.payroll tfoot td.ded-tot{color:var(--red);}
   <div class="header-right">
     <button class="hdr-btn" onclick="openBankingEditor()">⚙ Employee Banking</button>
     <button class="hdr-btn primary" onclick="exportBankCSV()" id="csv-btn" disabled>⬇ Export Bank CSV</button>
+    <button class="hdr-btn" onclick="printPayrollPage()" id="print-payroll-btn" disabled>🖨 Print / PDF</button>
     <button class="hdr-btn" onclick="window.location.href='acetech.html'">← Attendance App</button>
   </div>
 </header>
@@ -540,6 +541,7 @@ async function loadPayroll() {
     status.textContent = `✓ ${payrollData.length} employees loaded`;
     status.className   = 'cp-status ok';
     document.getElementById('csv-btn').disabled = false;
+    document.getElementById('print-payroll-btn').disabled = false;
   } catch(err) {
     status.textContent = '✕ ' + err.message;
     status.className   = 'cp-status err';
@@ -571,16 +573,17 @@ function renderPayrollTable() {
   tbody.innerHTML = '';
   tfoot.innerHTML = '';
 
-  let totReg=0, totOT=0, totGross=0, totDed=0, totNet=0, totEmp=0;
+  let totReg=0, totOT=0, totGross=0, totDed=0, totNet=0, totEmp=0, totBasicPay=0;
 
   payrollData.forEach((emp, idx) => {
     if (r2(emp.gross) === 0 && r2(emp.netPay) === 0) return; // Skip zero-pay employees
     totEmp++;
-    totReg   += r2(emp.regHrs);
-    totOT    += r2(emp.otHrs);
-    totGross += r2(emp.gross);
-    totDed   += r2(emp.totalDed);
-    totNet   += r2(emp.netPay);
+    totReg      += r2(emp.regHrs);
+    totOT       += r2(emp.otHrs);
+    totGross    += r2(emp.gross);
+    totDed      += r2(emp.totalDed);
+    totNet      += r2(emp.netPay);
+    totBasicPay += r2(emp.basicPay);
 
     const row = document.createElement('tr');
     row.dataset.idx = idx;
@@ -616,7 +619,8 @@ function renderPayrollTable() {
       <td class="lbl" colspan="5">TOTALS — ${totEmp} employees</td>
       <td>${totReg.toFixed(2)}</td>
       <td>${totOT.toFixed(2)}</td>
-      <td colspan="5"></td>
+      <td class="gross-tot">$${totBasicPay.toFixed(2)}</td>
+      <td colspan="4"></td>
       <td class="gross-tot">$${totGross.toFixed(2)}</td>
       <td colspan="3" class="ded-tot"></td>
       <td colspan="3" class="ded-tot"></td>
@@ -709,6 +713,65 @@ async function saveAdjustments() {
 // ══════════════════════════════════════════════════════════════════════════
 // BANK CSV EXPORT
 // ══════════════════════════════════════════════════════════════════════════
+// ══════════════════════════════════════════════════════════════════════════
+// PRINT / PDF — PAYROLL TABLE
+// ══════════════════════════════════════════════════════════════════════════
+function printPayrollPage() {
+  if (!payrollData.length) { alert('Load payroll first.'); return; }
+
+  // Build a clean print window with just the payroll table
+  const periodLabel = document.getElementById('period-label')?.textContent || '';
+  const tableHTML   = document.querySelector('table.payroll')?.outerHTML || '';
+  const summaryHTML = document.getElementById('summary-strip')?.outerHTML || '';
+
+  const win = window.open('', '_blank', 'width=1200,height=800');
+  win.document.write(`<!DOCTYPE html>
+<html><head>
+<meta charset="utf-8">
+<title>ACEtech Payroll — ${periodLabel}</title>
+<style>
+  *{box-sizing:border-box;margin:0;padding:0;}
+  body{font-family:'Segoe UI',Arial,sans-serif;font-size:11px;color:#111;background:#fff;padding:20px;}
+  h2{font-size:16px;font-weight:700;margin-bottom:4px;text-transform:uppercase;letter-spacing:1px;}
+  p.sub{font-size:11px;color:#555;margin-bottom:14px;}
+  .summary-strip{display:flex;gap:16px;margin-bottom:14px;flex-wrap:wrap;}
+  .sum-card{border:1px solid #ccc;border-radius:6px;padding:8px 14px;min-width:100px;}
+  .sum-label{font-size:9px;text-transform:uppercase;color:#777;letter-spacing:.5px;}
+  .sum-value{font-size:15px;font-weight:700;color:#111;}
+  .sum-value.gold{color:#c8961a;}
+  .sum-value.green{color:#1a8a3a;}
+  .sum-value.red{color:#b22020;}
+  table{border-collapse:collapse;width:100%;font-size:10px;}
+  th{background:#1a2236;color:#fff;padding:5px 6px;text-align:center;white-space:nowrap;font-size:9px;text-transform:uppercase;letter-spacing:.4px;}
+  th.th-group{background:#0d1525;border-bottom:1px solid #c8961a;}
+  td{padding:4px 6px;border-bottom:1px solid #e5e7eb;text-align:center;white-space:nowrap;}
+  td.emp-id,td.emp-name,td.emp-pos{text-align:left;}
+  td.emp-name{font-weight:600;}
+  td.gross-val{font-weight:700;color:#c8961a;}
+  td.net-val{font-weight:700;color:#1a8a3a;}
+  td.ded-val{color:#b22020;}
+  td.gold-text{color:#c8961a;}
+  tfoot td{background:#f3f4f6;font-weight:700;border-top:2px solid #c8961a;padding:5px 6px;}
+  tfoot td.lbl{text-align:left;color:#c8961a;font-size:10px;letter-spacing:.5px;}
+  tfoot td.gross-tot{color:#c8961a;}
+  tfoot td.net-tot{color:#1a8a3a;}
+  tfoot td.ded-tot{color:#b22020;}
+  input.edit-cell{border:none;background:transparent;width:70px;font-size:10px;text-align:right;}
+  @media print{
+    @page{size:landscape;margin:12mm;}
+    body{padding:0;}
+  }
+</style>
+</head><body>
+<h2>ACEtech — Payroll Summary</h2>
+<p class="sub">${periodLabel} &nbsp;·&nbsp; Printed ${new Date().toLocaleString()}</p>
+${summaryHTML}
+${tableHTML}
+<script>window.onload=()=>{window.print();}<\/script>
+</body></html>`);
+  win.document.close();
+}
+
 function exportBankCSV() {
   if (!payrollData.length) { alert('Load payroll first.'); return; }
   const defaultDueStr = fmtBankDate(new Date(currentPeriod.payDate));
