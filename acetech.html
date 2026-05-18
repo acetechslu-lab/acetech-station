@@ -461,7 +461,7 @@
       <button class="num-btn" onclick="pinPress('0')">0</button>
       <button class="num-btn del" onclick="pinDel()">⌫</button>
     </div>
-    <button class="auth-btn secondary" style="margin-top:16px;max-width:240px;" onclick="showAdminFromPin()">Admin Access</button>
+    <button class="auth-btn secondary" style="margin-top:16px;max-width:240px;" onclick="showAdminFromPin()">🔓 Unlock</button>
   </div>
 </div>
 
@@ -771,10 +771,13 @@
         <!-- Unlocked form -->
         <div id="entry-form" style="display:none;flex-direction:column;gap:12px;">
 
-          <!-- Lock again button -->
+          <!-- Lock again button + Clear -->
           <div style="display:flex;justify-content:space-between;align-items:center;">
             <div style="font-size:11px;text-transform:uppercase;letter-spacing:1.5px;color:var(--gold);font-weight:600;">✏️ Manual Time Entry</div>
-            <button onclick="lockManualEntry()" style="background:transparent;border:1px solid var(--border);color:var(--muted);border-radius:6px;padding:4px 10px;font-size:11px;cursor:pointer;">🔒 Lock</button>
+            <div style="display:flex;gap:6px;">
+              <button onclick="clearManualEntryForm()" style="background:transparent;border:1px solid var(--border);color:var(--muted);border-radius:6px;padding:4px 10px;font-size:11px;cursor:pointer;">✕ Clear</button>
+              <button onclick="lockManualEntry()" style="background:transparent;border:1px solid var(--border);color:var(--muted);border-radius:6px;padding:4px 10px;font-size:11px;cursor:pointer;">🔒 Lock</button>
+            </div>
           </div>
 
           <!-- Employee selector -->
@@ -1460,6 +1463,7 @@ let activeTab = 'qr';
 const TAB_IDS = ['qr','manual','name','entry'];
 function switchTab(tab) {
   if (activeTab === 'qr' && tab !== 'qr') stopScanner();
+  if (activeTab === 'entry' && tab !== 'entry') lockManualEntry();
   activeTab = tab;
   document.querySelectorAll('.tab-btn').forEach((b,i) => b.classList.toggle('active', TAB_IDS[i] === tab));
   document.querySelectorAll('.tab-panel').forEach((p,i) => p.classList.toggle('active', TAB_IDS[i] === tab));
@@ -1519,6 +1523,23 @@ function lockManualEntry() {
   document.getElementById('entry-note').value           = '';
   document.getElementById('entry-emp-badge').style.display = 'none';
   document.getElementById('entry-result').style.display = 'none';
+}
+
+function clearManualEntryForm() {
+  document.getElementById('entry-name-search').value       = '';
+  document.getElementById('entry-emp-id').value            = '';
+  document.getElementById('entry-clock-in').value          = '';
+  document.getElementById('entry-clock-out').value         = '';
+  document.getElementById('entry-note').value              = '';
+  document.getElementById('entry-emp-badge').style.display = 'none';
+  document.getElementById('entry-result').style.display    = 'none';
+  document.getElementById('entry-name-results').classList.remove('open');
+  // Reset date to today
+  const today = new Date();
+  const yyyy = today.getFullYear();
+  const mm   = String(today.getMonth()+1).padStart(2,'0');
+  const dd   = String(today.getDate()).padStart(2,'0');
+  document.getElementById('entry-date').value = `${yyyy}-${mm}-${dd}`;
 }
 
 function searchEntryEmployee(query) {
