@@ -1130,8 +1130,14 @@ async function checkPin() {
       const res  = await gasFetch(`${WEB_APP_URL}?action=verifyDevicePin&name=${encodeURIComponent(deviceName)}&pin=${encodeURIComponent(entered)}`);
       const data = await res.json();
       if (data.success) {
-        valid = data.valid;
-        if (valid && data.pin) store.set('device_pin', data.pin); // refresh cache
+        if (data.pin !== undefined && !data.notFound) {
+          // Device found in Sheets — trust the Sheets result
+          valid = data.valid;
+          if (valid) store.set('device_pin', data.pin); // keep cache in sync
+        } else {
+          // Device not in Sheets yet (notFound) — fall back to local cache
+          valid = entered === getDevicePin();
+        }
       } else { valid = entered === getDevicePin(); } // GAS error — use cache
     } catch(e) { valid = entered === getDevicePin(); } // offline — use cache
   } else {
