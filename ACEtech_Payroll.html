@@ -781,7 +781,12 @@ function exportBankCSV() {
   if (!payrollData.length) { alert('Load payroll first.'); return; }
   const defaultDueStr = fmtBankDate(new Date(currentPeriod.payDate));
 
-  const rows = [['Full Name','Individual ID','R/T Number','A/C Number','Account Type','Amount','Due Date','DR/CR','Addenda']];
+  // Bank requires 16 columns total: 9 named + 7 trailing empty
+  const TRAIL = ['', '', '', '', '', '', ''];
+
+  const rows = [
+    ['Full Name','Individual ID','R/T Number','A/C Number','Account Type','Amount','Due Date','DR/CR','Addenda'].concat(TRAIL)
+  ];
 
   // Merge per-employee dueDate/drcr from banking editor (allEmployees) into payrollData
   const bankMap = {};
@@ -797,20 +802,33 @@ function exportBankCSV() {
     const acctType  = emp.acctType || 'DDA';
     const drcr      = bankEmp.drcr || emp.drcr || 'CREDIT';
     const dueDate   = bankEmp.dueDate ? fmtBankDate(new Date(bankEmp.dueDate)) : defaultDueStr;
+
+    // Addenda:
+    //   CU savings account (SAV) → "for"  (e.g. credit-union union accounts)
+    //   Other CU account (cuAcct set) → "to"
+    //   Standard bank account → "Regular Salary"
     let addenda;
-    if (emp.cuAcct) {
+    if (emp.cuAcct && acctType === 'SAV') {
+      addenda = `Payment by ACEtech for ${emp.name} a/c ${emp.cuAcct}`;
+    } else if (emp.cuAcct) {
       addenda = `Payment by ACEtech to ${emp.name} a/c ${emp.cuAcct}`;
     } else {
-      addenda = `Regular Salary`;
+      addenda = 'Regular Salary';
     }
+
     const nicId = emp.nicNum || (emp.id ? emp.id.replace(/^ACE/i, '') : '');
-    rows.push([payeeName, nicId, routing, acctNum, acctType, amount, dueDate, drcr, addenda]);
+    rows.push([payeeName, nicId, routing, acctNum, acctType, amount, dueDate, drcr, addenda].concat(TRAIL));
   });
 
   const csv = rows.map((r, rowIdx) => r.map((v, colIdx) => {
     const s = String(v);
-    // Always quote routing col (2) to preserve leading zeros in Excel/Sheets
-    if (colIdx === 2 || s.includes(',') || s.includes('\n') || s.includes('"')) {
+    // Data rows only: routing column (2) uses triple-quote wrapping so the bank
+    // receives a value with literal " characters: """000000369"""
+    if (rowIdx > 0 && colIdx === 2 && s) {
+      return '"""' + s + '"""';
+    }
+    // Standard CSV quoting for any field that contains commas, newlines, or quotes
+    if (s.includes(',') || s.includes('\n') || s.includes('"')) {
       return '"' + s.replace(/"/g, '""') + '"';
     }
     return s;
