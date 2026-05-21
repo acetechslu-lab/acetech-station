@@ -387,7 +387,7 @@ table.payroll tfoot td.ded-tot{color:var(--red);}
 // ══════════════════════════════════════════════════════════════════════════
 // CONFIG
 // ══════════════════════════════════════════════════════════════════════════
-const WEB_APP_URL    = "https://script.google.com/macros/s/AKfycbyo2ujN6eGRhI2omit6HUfLA-h6eRQIDXEdoFqcbKQH17wleHNRCDEKPTj9MAnPRYP_/exec";
+const WEB_APP_URL    = "https://script.google.com/macros/s/AKfycbzG_emTfDuxvwE6WWLa7vnWn2_gNoTmv3fOe8NwoV1mMr8xYQeV3ORLmRD6pVs9qBWM/exec";
 const DEFAULT_PIN    = "1234";  // Admin password — change to match your attendance app
 const ADMIN_PASS_KEY = 'acetech_admin_pass';
 
@@ -597,13 +597,13 @@ function renderPayrollTable() {
       <td class="${r2(emp.otHrs)>0?'gold-text':''}">${hrs(emp.otHrs)}</td>
       <td>${cur(emp.basicPay)}</td>
       <td>${cur(emp.otPay)}</td>
-      <td>${cur(emp.allowance)}</td>
+      <td><input type="number" class="edit-cell" data-field="allowance" data-idx="${idx}" value="${r2(emp.allowance)||''}" placeholder="0.00" step="0.01" min="0" title="Default: ${emp.workDays} days × $${r2(emp.allowDay||0).toFixed(2)}/day" onchange="onAdjChange(${idx},'allowance',this.value)"></td>
       <td><input type="number" class="edit-cell" data-field="bonus" data-idx="${idx}" value="${r2(emp.bonus)||''}" placeholder="0.00" step="0.01" min="0" onchange="onAdjChange(${idx},'bonus',this.value)"></td>
       <td><input type="number" class="edit-cell" data-field="backPay" data-idx="${idx}" value="${r2(emp.backPay)||''}" placeholder="0.00" step="0.01" min="0" onchange="onAdjChange(${idx},'backPay',this.value)"></td>
       <td class="gross-val">$${r2(emp.gross).toFixed(2)}</td>
-      <td class="ded-val">${cur(emp.nic)}</td>
-      <td class="ded-val">${cur(emp.paye)}</td>
-      <td class="ded-val">${cur(emp.healthIns)}</td>
+      <td class="ded-val" data-field="nic">${cur(emp.nic)}</td>
+      <td><input type="number" class="edit-cell" data-field="paye" data-idx="${idx}" value="${r2(emp.paye)||''}" placeholder="0.00" step="0.01" min="0" title="Default from employee record" onchange="onAdjChange(${idx},'paye',this.value)"></td>
+      <td><input type="number" class="edit-cell" data-field="healthIns" data-idx="${idx}" value="${r2(emp.healthIns)||''}" placeholder="0.00" step="0.01" min="0" title="Default from employee record" onchange="onAdjChange(${idx},'healthIns',this.value)"></td>
       <td><input type="number" class="edit-cell" data-field="salAdv" data-idx="${idx}" value="${r2(emp.salAdv)||''}" placeholder="0.00" step="0.01" min="0" onchange="onAdjChange(${idx},'salAdv',this.value)"></td>
       <td><input type="number" class="edit-cell" data-field="loan" data-idx="${idx}" value="${r2(emp.loan)||''}" placeholder="0.00" step="0.01" min="0" onchange="onAdjChange(${idx},'loan',this.value)"></td>
       <td><input type="number" class="edit-cell" data-field="other" data-idx="${idx}" value="${r2(emp.other)||''}" placeholder="0.00" step="0.01" min="0" onchange="onAdjChange(${idx},'other',this.value)"></td>
@@ -622,9 +622,7 @@ function renderPayrollTable() {
       <td class="gross-tot">$${totBasicPay.toFixed(2)}</td>
       <td colspan="4"></td>
       <td class="gross-tot">$${totGross.toFixed(2)}</td>
-      <td colspan="3" class="ded-tot"></td>
-      <td colspan="3" class="ded-tot"></td>
-      <td class="ded-tot">$${totDed.toFixed(2)}</td>
+      <td colspan="6" class="ded-tot" style="text-align:right;padding-right:8px;">Total Deductions: $${totDed.toFixed(2)}</td>
       <td class="net-tot">$${totNet.toFixed(2)}</td>
       <td></td>
     </tr>
@@ -660,11 +658,15 @@ function onAdjChange(idx, field, value) {
   if (row) {
     row.querySelector('.gross-val').textContent = '$' + gross.toFixed(2);
     row.querySelector('.net-val').textContent   = '$' + netPay.toFixed(2);
+    // NIC is displayed (not an input) — update it whenever gross changes
+    const nicCell = row.querySelector('.ded-val[data-field="nic"]');
+    if (nicCell) nicCell.textContent = nic === 0 ? '—' : '$' + nic.toFixed(2);
   }
-  // Show unsaved notice
-  document.getElementById('save-adj-btn').style.background = 'rgba(201,162,39,.2)';
-  document.getElementById('save-adj-btn').style.borderColor = 'var(--gold)';
-  document.getElementById('save-adj-btn').style.color = 'var(--gold)';
+  // Highlight Save button to show there are unsaved changes
+  const saveBtn = document.getElementById('save-adj-btn');
+  saveBtn.style.background  = 'rgba(201,162,39,.2)';
+  saveBtn.style.borderColor = 'var(--gold)';
+  saveBtn.style.color       = 'var(--gold)';
 }
 
 // ══════════════════════════════════════════════════════════════════════════
@@ -676,13 +678,16 @@ async function saveAdjustments() {
   btn.disabled = true;
   try {
     const rows = payrollData.map(e => ({
-      id: e.id,
-      bonus:   r2(e.bonus),
-      backPay: r2(e.backPay),
-      salAdv:  r2(e.salAdv),
-      loan:    r2(e.loan),
-      other:   r2(e.other),
-      note:    e.note || ''
+      id:           e.id,
+      bonus:        r2(e.bonus),
+      backPay:      r2(e.backPay),
+      salAdv:       r2(e.salAdv),
+      loan:         r2(e.loan),
+      other:        r2(e.other),
+      note:         e.note || '',
+      allowanceOvr: r2(e.allowance),   // saves current allowance as override
+      payeOvr:      r2(e.paye),        // saves current PAYE as override
+      healthOvr:    r2(e.healthIns)    // saves current health ins as override
     }));
     const p = new URLSearchParams({
       action: 'saveAdjustments',
