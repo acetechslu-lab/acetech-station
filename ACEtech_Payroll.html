@@ -387,7 +387,7 @@ table.payroll tfoot td.ded-tot{color:var(--red);}
 // ══════════════════════════════════════════════════════════════════════════
 // CONFIG
 // ══════════════════════════════════════════════════════════════════════════
-const WEB_APP_URL    = "https://script.google.com/macros/s/AKfycbzG_emTfDuxvwE6WWLa7vnWn2_gNoTmv3fOe8NwoV1mMr8xYQeV3ORLmRD6pVs9qBWM/exec";
+const WEB_APP_URL    = "https://script.google.com/macros/s/AKfycbyo2ujN6eGRhI2omit6HUfLA-h6eRQIDXEdoFqcbKQH17wleHNRCDEKPTj9MAnPRYP_/exec";
 const DEFAULT_PIN    = "1234";  // Admin password — change to match your attendance app
 const ADMIN_PASS_KEY = 'acetech_admin_pass';
 
@@ -576,7 +576,13 @@ function renderPayrollTable() {
   let totReg=0, totOT=0, totGross=0, totDed=0, totNet=0, totEmp=0, totBasicPay=0;
 
   payrollData.forEach((emp, idx) => {
-    if (r2(emp.gross) === 0 && r2(emp.netPay) === 0) return; // Skip zero-pay employees
+    // ── Pay-cycle filter: only show employees matching the selected period type ──
+    const empCycle      = (emp.payCycle || 'Fortnightly').trim();
+    const isMonthlyMode = (periodType === 'Monthly');
+    if ( isMonthlyMode && empCycle !== 'Monthly')   return; // Monthly mode  → hide Fortnightly staff
+    if (!isMonthlyMode && empCycle === 'Monthly')   return; // Fortnightly mode → hide Monthly staff
+    // Skip zero-pay only in Fortnightly mode; Monthly employees always appear
+    if (!isMonthlyMode && r2(emp.gross) === 0 && r2(emp.netPay) === 0) return;
     totEmp++;
     totReg      += r2(emp.regHrs);
     totOT       += r2(emp.otHrs);
@@ -597,13 +603,13 @@ function renderPayrollTable() {
       <td class="${r2(emp.otHrs)>0?'gold-text':''}">${hrs(emp.otHrs)}</td>
       <td>${cur(emp.basicPay)}</td>
       <td>${cur(emp.otPay)}</td>
-      <td><input type="number" class="edit-cell" data-field="allowance" data-idx="${idx}" value="${r2(emp.allowance)||''}" placeholder="0.00" step="0.01" min="0" title="Default: ${emp.workDays} days × $${r2(emp.allowDay||0).toFixed(2)}/day" onchange="onAdjChange(${idx},'allowance',this.value)"></td>
+      <td>${cur(emp.allowance)}</td>
       <td><input type="number" class="edit-cell" data-field="bonus" data-idx="${idx}" value="${r2(emp.bonus)||''}" placeholder="0.00" step="0.01" min="0" onchange="onAdjChange(${idx},'bonus',this.value)"></td>
       <td><input type="number" class="edit-cell" data-field="backPay" data-idx="${idx}" value="${r2(emp.backPay)||''}" placeholder="0.00" step="0.01" min="0" onchange="onAdjChange(${idx},'backPay',this.value)"></td>
       <td class="gross-val">$${r2(emp.gross).toFixed(2)}</td>
-      <td class="ded-val" data-field="nic">${cur(emp.nic)}</td>
-      <td><input type="number" class="edit-cell" data-field="paye" data-idx="${idx}" value="${r2(emp.paye)||''}" placeholder="0.00" step="0.01" min="0" title="Default from employee record" onchange="onAdjChange(${idx},'paye',this.value)"></td>
-      <td><input type="number" class="edit-cell" data-field="healthIns" data-idx="${idx}" value="${r2(emp.healthIns)||''}" placeholder="0.00" step="0.01" min="0" title="Default from employee record" onchange="onAdjChange(${idx},'healthIns',this.value)"></td>
+      <td class="ded-val">${cur(emp.nic)}</td>
+      <td class="ded-val">${cur(emp.paye)}</td>
+      <td class="ded-val">${cur(emp.healthIns)}</td>
       <td><input type="number" class="edit-cell" data-field="salAdv" data-idx="${idx}" value="${r2(emp.salAdv)||''}" placeholder="0.00" step="0.01" min="0" onchange="onAdjChange(${idx},'salAdv',this.value)"></td>
       <td><input type="number" class="edit-cell" data-field="loan" data-idx="${idx}" value="${r2(emp.loan)||''}" placeholder="0.00" step="0.01" min="0" onchange="onAdjChange(${idx},'loan',this.value)"></td>
       <td><input type="number" class="edit-cell" data-field="other" data-idx="${idx}" value="${r2(emp.other)||''}" placeholder="0.00" step="0.01" min="0" onchange="onAdjChange(${idx},'other',this.value)"></td>
@@ -622,7 +628,9 @@ function renderPayrollTable() {
       <td class="gross-tot">$${totBasicPay.toFixed(2)}</td>
       <td colspan="4"></td>
       <td class="gross-tot">$${totGross.toFixed(2)}</td>
-      <td colspan="6" class="ded-tot" style="text-align:right;padding-right:8px;">Total Deductions: $${totDed.toFixed(2)}</td>
+      <td colspan="3" class="ded-tot"></td>
+      <td colspan="3" class="ded-tot"></td>
+      <td class="ded-tot">$${totDed.toFixed(2)}</td>
       <td class="net-tot">$${totNet.toFixed(2)}</td>
       <td></td>
     </tr>
@@ -658,15 +666,11 @@ function onAdjChange(idx, field, value) {
   if (row) {
     row.querySelector('.gross-val').textContent = '$' + gross.toFixed(2);
     row.querySelector('.net-val').textContent   = '$' + netPay.toFixed(2);
-    // NIC is displayed (not an input) — update it whenever gross changes
-    const nicCell = row.querySelector('.ded-val[data-field="nic"]');
-    if (nicCell) nicCell.textContent = nic === 0 ? '—' : '$' + nic.toFixed(2);
   }
-  // Highlight Save button to show there are unsaved changes
-  const saveBtn = document.getElementById('save-adj-btn');
-  saveBtn.style.background  = 'rgba(201,162,39,.2)';
-  saveBtn.style.borderColor = 'var(--gold)';
-  saveBtn.style.color       = 'var(--gold)';
+  // Show unsaved notice
+  document.getElementById('save-adj-btn').style.background = 'rgba(201,162,39,.2)';
+  document.getElementById('save-adj-btn').style.borderColor = 'var(--gold)';
+  document.getElementById('save-adj-btn').style.color = 'var(--gold)';
 }
 
 // ══════════════════════════════════════════════════════════════════════════
@@ -678,16 +682,13 @@ async function saveAdjustments() {
   btn.disabled = true;
   try {
     const rows = payrollData.map(e => ({
-      id:           e.id,
-      bonus:        r2(e.bonus),
-      backPay:      r2(e.backPay),
-      salAdv:       r2(e.salAdv),
-      loan:         r2(e.loan),
-      other:        r2(e.other),
-      note:         e.note || '',
-      allowanceOvr: r2(e.allowance),   // saves current allowance as override
-      payeOvr:      r2(e.paye),        // saves current PAYE as override
-      healthOvr:    r2(e.healthIns)    // saves current health ins as override
+      id: e.id,
+      bonus:   r2(e.bonus),
+      backPay: r2(e.backPay),
+      salAdv:  r2(e.salAdv),
+      loan:    r2(e.loan),
+      other:   r2(e.other),
+      note:    e.note || ''
     }));
     const p = new URLSearchParams({
       action: 'saveAdjustments',
@@ -781,12 +782,7 @@ function exportBankCSV() {
   if (!payrollData.length) { alert('Load payroll first.'); return; }
   const defaultDueStr = fmtBankDate(new Date(currentPeriod.payDate));
 
-  // Bank requires 16 columns total: 9 named + 7 trailing empty
-  const TRAIL = ['', '', '', '', '', '', ''];
-
-  const rows = [
-    ['Full Name','Individual ID','R/T Number','A/C Number','Account Type','Amount','Due Date','DR/CR','Addenda'].concat(TRAIL)
-  ];
+  const rows = [['Full Name','Individual ID','R/T Number','A/C Number','Account Type','Amount','Due Date','DR/CR','Addenda']];
 
   // Merge per-employee dueDate/drcr from banking editor (allEmployees) into payrollData
   const bankMap = {};
@@ -802,33 +798,20 @@ function exportBankCSV() {
     const acctType  = emp.acctType || 'DDA';
     const drcr      = bankEmp.drcr || emp.drcr || 'CREDIT';
     const dueDate   = bankEmp.dueDate ? fmtBankDate(new Date(bankEmp.dueDate)) : defaultDueStr;
-
-    // Addenda:
-    //   CU savings account (SAV) → "for"  (e.g. credit-union union accounts)
-    //   Other CU account (cuAcct set) → "to"
-    //   Standard bank account → "Regular Salary"
     let addenda;
-    if (emp.cuAcct && acctType === 'SAV') {
-      addenda = `Payment by ACEtech for ${emp.name} a/c ${emp.cuAcct}`;
-    } else if (emp.cuAcct) {
+    if (emp.cuAcct) {
       addenda = `Payment by ACEtech to ${emp.name} a/c ${emp.cuAcct}`;
     } else {
-      addenda = 'Regular Salary';
+      addenda = `Regular Salary`;
     }
-
     const nicId = emp.nicNum || (emp.id ? emp.id.replace(/^ACE/i, '') : '');
-    rows.push([payeeName, nicId, routing, acctNum, acctType, amount, dueDate, drcr, addenda].concat(TRAIL));
+    rows.push([payeeName, nicId, routing, acctNum, acctType, amount, dueDate, drcr, addenda]);
   });
 
   const csv = rows.map((r, rowIdx) => r.map((v, colIdx) => {
     const s = String(v);
-    // Data rows only: routing column (2) uses triple-quote wrapping so the bank
-    // receives a value with literal " characters: """000000369"""
-    if (rowIdx > 0 && colIdx === 2 && s) {
-      return '"""' + s + '"""';
-    }
-    // Standard CSV quoting for any field that contains commas, newlines, or quotes
-    if (s.includes(',') || s.includes('\n') || s.includes('"')) {
+    // Always quote routing col (2) to preserve leading zeros in Excel/Sheets
+    if (colIdx === 2 || s.includes(',') || s.includes('\n') || s.includes('"')) {
       return '"' + s.replace(/"/g, '""') + '"';
     }
     return s;
@@ -934,15 +917,26 @@ function buildPayslipHTML(emp) {
   </div>`;
 }
 
+function cycleFilteredPool() {
+  const isMonthlyMode = (periodType === 'Monthly');
+  return payrollData.filter(e => {
+    const c = (e.payCycle || 'Fortnightly').trim();
+    if ( isMonthlyMode && c !== 'Monthly') return false;
+    if (!isMonthlyMode && c === 'Monthly') return false;
+    if (!isMonthlyMode && r2(e.gross) === 0 && r2(e.netPay) === 0) return false;
+    return true;
+  });
+}
+
 function showSingleSlip(idx) {
-  slipPool  = payrollData.filter(e => r2(e.gross) > 0 || r2(e.netPay) > 0);
+  slipPool  = cycleFilteredPool();
   slipIndex = slipPool.findIndex(e => e === payrollData[idx]);
   if (slipIndex < 0) slipIndex = 0;
   renderSlipModal();
 }
 
 function showAllSlips() {
-  slipPool  = payrollData.filter(e => r2(e.gross) > 0 || r2(e.netPay) > 0);
+  slipPool  = cycleFilteredPool();
   if (!slipPool.length) { alert('No employees with pay to display.'); return; }
   // Build print zone with all payslips
   const pz = document.getElementById('print-zone');
