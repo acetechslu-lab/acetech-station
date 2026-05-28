@@ -581,8 +581,8 @@ function renderPayrollTable() {
     const isMonthlyMode = (periodType === 'Monthly');
     if ( isMonthlyMode && empCycle !== 'Monthly')   return; // Monthly mode  → hide Fortnightly staff
     if (!isMonthlyMode && empCycle === 'Monthly')   return; // Fortnightly mode → hide Monthly staff
-    // Skip zero-pay only in Fortnightly mode; Monthly employees always appear
-    if (!isMonthlyMode && r2(emp.gross) === 0 && r2(emp.netPay) === 0) return;
+    // Skip employees with no pay in either mode
+    if (r2(emp.gross) === 0 && r2(emp.netPay) === 0) return;
     totEmp++;
     totReg      += r2(emp.regHrs);
     totOT       += r2(emp.otHrs);
@@ -788,12 +788,15 @@ function exportBankCSV() {
   const bankMap = {};
   (allEmployees || []).forEach(e => { bankMap[e.id] = e; });
 
-  payrollData.forEach(emp => {
-    if (r2(emp.netPay) <= 0) return;
+  // Only export employees matching the currently selected pay cycle
+  cycleFilteredPool().forEach(emp => {
+    if (r2(emp.netPay) <= 0) return; // Skip employees with no pay to transfer
     const bankEmp   = bankMap[emp.id] || {};
     const payeeName = emp.payeeName || emp.name;
     const amount    = r2(emp.netPay).toFixed(2);
-    const routing   = emp.routing ? String(emp.routing).padStart(9, '0') : '';
+    // Always format routing as exactly 9 digits, zero-padded
+    const rawRouting = String(emp.routing || '').replace(/\D/g, ''); // strip non-digits first
+    const routing    = rawRouting ? rawRouting.padStart(9, '0') : '';
     const acctNum   = emp.acctNumber || '';
     const acctType  = emp.acctType || 'DDA';
     const drcr      = bankEmp.drcr || emp.drcr || 'CREDIT';
@@ -923,7 +926,7 @@ function cycleFilteredPool() {
     const c = (e.payCycle || 'Fortnightly').trim();
     if ( isMonthlyMode && c !== 'Monthly') return false;
     if (!isMonthlyMode && c === 'Monthly') return false;
-    if (!isMonthlyMode && r2(e.gross) === 0 && r2(e.netPay) === 0) return false;
+    if (r2(e.gross) === 0 && r2(e.netPay) === 0) return false;
     return true;
   });
 }
