@@ -573,7 +573,7 @@ function renderPayrollTable() {
   tbody.innerHTML = '';
   tfoot.innerHTML = '';
 
-  let totReg=0, totOT=0, totGross=0, totDed=0, totNet=0, totEmp=0, totBasicPay=0;
+  let totReg=0, totOT=0, totGross=0, totDed=0, totNet=0, totEmp=0, totBasicPay=0, totNIC=0;
 
   payrollData.forEach((emp, idx) => {
     // ── Pay-cycle filter: only show employees matching the selected period type ──
@@ -590,6 +590,7 @@ function renderPayrollTable() {
     totDed      += r2(emp.totalDed);
     totNet      += r2(emp.netPay);
     totBasicPay += r2(emp.basicPay);
+    totNIC      += r2(emp.nic);
 
     const row = document.createElement('tr');
     row.dataset.idx = idx;
@@ -620,6 +621,9 @@ function renderPayrollTable() {
   });
 
   // Footer totals
+  // Column layout (21 cols total):
+  // 0-4: label | 5: RegHrs | 6: OTHrs | 7: BasicPay | 8-11: OTPay/Allow/Bonus/BackPay
+  // 12: GROSS | 13: NIC | 14-18: PAYE/Health/SalAdv/Loan/Other | 19: NET PAY | 20: Payslip
   tfoot.innerHTML = `
     <tr>
       <td class="lbl" colspan="5">TOTALS — ${totEmp} employees</td>
@@ -628,9 +632,8 @@ function renderPayrollTable() {
       <td class="gross-tot">$${totBasicPay.toFixed(2)}</td>
       <td colspan="4"></td>
       <td class="gross-tot">$${totGross.toFixed(2)}</td>
-      <td colspan="3" class="ded-tot"></td>
-      <td colspan="3" class="ded-tot"></td>
-      <td class="ded-tot">$${totDed.toFixed(2)}</td>
+      <td class="ded-tot">$${totNIC.toFixed(2)}</td>
+      <td colspan="5"></td>
       <td class="net-tot">$${totNet.toFixed(2)}</td>
       <td></td>
     </tr>
@@ -802,10 +805,26 @@ function printPayrollPage() {
     span.textContent = v > 0 ? '$' + v.toFixed(2) : '—';
     inp.parentNode.replaceChild(span, inp);
   });
-  // Remove the last column (Payslip button) from every row
+
+  // Remove the Payslip column correctly:
+  // - thead row 1: last th is "Payslip" (rowspan=2) → remove it
+  // - thead row 2: has no Payslip cell (covered by rowspan) → skip this row
+  // - tbody rows: last td contains the slip-btn button → remove it
+  // - tfoot row: last td is empty placeholder → remove it
   tableClone.querySelectorAll('tr').forEach(tr => {
     const last = tr.lastElementChild;
-    if (last) last.remove();
+    if (!last) return;
+    const isSubHeader = last.tagName === 'TH' && !tr.querySelector('[rowspan]');
+    if (isSubHeader) return; // skip 2nd header row — it has no Payslip cell
+    last.remove();
+  });
+
+  // Fix CSS variable colors so GROSS/NET PAY headers are visible in the print window
+  tableClone.querySelectorAll('[style*="var(--gold)"]').forEach(el => {
+    el.style.color = '#d4a017';
+  });
+  tableClone.querySelectorAll('[style*="var(--green)"]').forEach(el => {
+    el.style.color = '#22c55e';
   });
 
   // Build summary strip values from DOM
@@ -823,10 +842,10 @@ function printPayrollPage() {
     .sum-value.gold{color:#b8860b;}
     .sum-value.green{color:#166534;}
     .sum-value.red{color:#b91c1c;}
-    table{border-collapse:collapse;width:100%;font-size:9.5px;}
-    th{background:#1a2236;color:#fff;padding:4px 5px;text-align:center;white-space:nowrap;font-size:8.5px;text-transform:uppercase;letter-spacing:.3px;}
+    table{border-collapse:collapse;width:100%;font-size:8.5px;}
+    th{background:#1a2236;color:#fff;padding:3px 3px;text-align:center;white-space:nowrap;font-size:7.5px;text-transform:uppercase;letter-spacing:.2px;}
     th.th-group{background:#0d1525;border-bottom:1px solid #b8860b;color:#d4a017;}
-    td{padding:3px 5px;border-bottom:1px solid #e5e7eb;text-align:center;white-space:nowrap;}
+    td{padding:2px 3px;border-bottom:1px solid #e5e7eb;text-align:center;white-space:nowrap;}
     td.emp-id,td.emp-name,td.emp-pos{text-align:left;}
     td.emp-name{font-weight:600;}
     td.gross-val{font-weight:700;color:#b8860b;}
