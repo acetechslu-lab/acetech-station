@@ -329,7 +329,7 @@ table.payroll tfoot td.ded-tot{color:var(--red);}
     <div id="slip-content"></div>
     <div class="slip-actions no-print">
       <button class="act-btn" onclick="closeSlipModal()">Close</button>
-      <button class="act-btn primary" onclick="window.print()">🖨 Print / Save PDF</button>
+      <button class="act-btn primary" onclick="printCurrentSlip()">🖨 Print / Save PDF</button>
     </div>
   </div>
 </div>
@@ -722,60 +722,132 @@ async function saveAdjustments() {
 // ══════════════════════════════════════════════════════════════════════════
 // PRINT / PDF — PAYROLL TABLE
 // ══════════════════════════════════════════════════════════════════════════
+// ── Shared helper: open a clean print/PDF window ──────────────────────────
+const SLIP_CSS = `
+  *{box-sizing:border-box;margin:0;padding:0;}
+  body{font-family:'Segoe UI',Arial,sans-serif;background:#fff;color:#111;padding:20px;}
+  .payslip-page{page-break-after:always;}
+  .payslip-page:last-child{page-break-after:auto;}
+  .payslip-card{background:#fff;color:#1a1a2e;border-radius:12px;padding:32px;font-size:13px;line-height:1.5;width:100%;max-width:720px;margin:0 auto 40px;}
+  .ps-header{display:flex;justify-content:space-between;align-items:flex-start;border-bottom:3px solid #C9A227;padding-bottom:16px;margin-bottom:20px;}
+  .ps-company{font-family:Arial,sans-serif;font-size:26px;font-weight:900;color:#0a0f1a;letter-spacing:1px;}
+  .ps-company span{color:#C9A227;}
+  .ps-company-sub{font-size:11px;color:#666;letter-spacing:2px;text-transform:uppercase;}
+  .ps-period{text-align:right;}
+  .ps-period-label{font-size:10px;text-transform:uppercase;letter-spacing:1.5px;color:#888;}
+  .ps-period-value{font-size:16px;font-weight:700;color:#1a1a2e;}
+  .ps-emp{display:grid;grid-template-columns:1fr 1fr;gap:6px 20px;background:#f5f5f5;border-radius:8px;padding:14px 16px;margin-bottom:18px;}
+  .ps-field{display:flex;flex-direction:column;gap:2px;}
+  .ps-field-label{font-size:9px;text-transform:uppercase;letter-spacing:1.5px;color:#888;}
+  .ps-field-value{font-weight:600;color:#1a1a2e;font-size:13px;}
+  .ps-sections{display:grid;grid-template-columns:1fr 1fr;gap:16px;margin-bottom:18px;}
+  .ps-sections h4{font-size:10px;text-transform:uppercase;letter-spacing:1.5px;color:#888;margin-bottom:8px;}
+  .ps-row{display:flex;justify-content:space-between;padding:4px 0;border-bottom:1px solid #f0f0f0;font-size:12px;}
+  .ps-row:last-child{border-bottom:none;}
+  .ps-row.bold{font-weight:700;}
+  .ps-row.gold{color:#8a6c18;font-weight:700;}
+  .ps-row.red{color:#dc2626;}
+  .ps-summary{background:#f9f9f9;border-radius:8px;padding:16px;margin-bottom:18px;display:grid;grid-template-columns:1fr 1fr 1fr;gap:12px;}
+  .ps-sum-item{display:flex;flex-direction:column;gap:4px;}
+  .ps-sum-label{font-size:9px;text-transform:uppercase;letter-spacing:1.5px;color:#888;}
+  .ps-sum-amount{font-size:20px;font-weight:900;color:#1a1a2e;}
+  .ps-sum-amount.red{color:#dc2626;}
+  .ps-sum-amount.green{color:#166534;}
+  .ps-footer{display:flex;justify-content:space-between;align-items:center;border-top:1px solid #ddd;padding-top:14px;margin-top:6px;}
+  .ps-sig{font-size:11px;color:#555;}
+  .ps-sig strong{display:block;margin-top:4px;font-size:13px;color:#1a1a2e;}
+  .ps-stamp{font-size:12px;font-weight:700;color:#888;text-align:center;}
+  @media print{@page{size:A4 portrait;margin:12mm;}body{padding:0;}}
+`;
+
+function openPrintWindow(title, bodyHTML, extraCSS) {
+  const win = window.open('', '_blank', 'width=900,height=700');
+  if (!win) { alert('Pop-up blocked — please allow pop-ups for this page and try again.'); return; }
+  win.document.write(`<!DOCTYPE html><html><head><meta charset="utf-8"><title>${title}</title><style>${SLIP_CSS}${extraCSS||''}</style></head><body>${bodyHTML}<script>window.onload=()=>{window.print();}<\/script></body></html>`);
+  win.document.close();
+}
+
+// ── Print current payslip (called from modal) ─────────────────────────────
+function printCurrentSlip() {
+  const emp = slipPool[slipIndex];
+  if (!emp) return;
+  openPrintWindow(
+    `ACEtech Payslip — ${emp.name}`,
+    `<div class="payslip-page">${buildPayslipHTML(emp)}</div>`
+  );
+}
+
+// ── Print all payslips ────────────────────────────────────────────────────
+function showAllSlips() {
+  const pool = cycleFilteredPool();
+  if (!pool.length) { alert('No employees with pay to display.'); return; }
+  const periodLabel = document.getElementById('period-label')?.textContent || '';
+  const bodyHTML = pool.map(e => `<div class="payslip-page">${buildPayslipHTML(e)}</div>`).join('');
+  openPrintWindow(`ACEtech Payslips — ${periodLabel}`, bodyHTML);
+}
+
+// ── Print payroll summary table ───────────────────────────────────────────
 function printPayrollPage() {
   if (!payrollData.length) { alert('Load payroll first.'); return; }
-
-  // Build a clean print window with just the payroll table
   const periodLabel = document.getElementById('period-label')?.textContent || '';
-  const tableHTML   = document.querySelector('table.payroll')?.outerHTML || '';
+
+  // Clone the table so we can clean it up for print
+  const tableClone = document.querySelector('table.payroll')?.cloneNode(true);
+  if (!tableClone) { alert('Payroll table not found. Load payroll first.'); return; }
+
+  // Replace every <input> with its plain-text value
+  tableClone.querySelectorAll('input.edit-cell').forEach(inp => {
+    const v = parseFloat(inp.value || 0);
+    const span = document.createElement('span');
+    span.textContent = v > 0 ? '$' + v.toFixed(2) : '—';
+    inp.parentNode.replaceChild(span, inp);
+  });
+  // Remove the last column (Payslip button) from every row
+  tableClone.querySelectorAll('tr').forEach(tr => {
+    const last = tr.lastElementChild;
+    if (last) last.remove();
+  });
+
+  // Build summary strip values from DOM
   const summaryHTML = document.getElementById('summary-strip')?.outerHTML || '';
 
-  const win = window.open('', '_blank', 'width=1200,height=800');
-  win.document.write(`<!DOCTYPE html>
-<html><head>
-<meta charset="utf-8">
-<title>ACEtech Payroll — ${periodLabel}</title>
-<style>
-  *{box-sizing:border-box;margin:0;padding:0;}
-  body{font-family:'Segoe UI',Arial,sans-serif;font-size:11px;color:#111;background:#fff;padding:20px;}
-  h2{font-size:16px;font-weight:700;margin-bottom:4px;text-transform:uppercase;letter-spacing:1px;}
-  p.sub{font-size:11px;color:#555;margin-bottom:14px;}
-  .summary-strip{display:flex;gap:16px;margin-bottom:14px;flex-wrap:wrap;}
-  .sum-card{border:1px solid #ccc;border-radius:6px;padding:8px 14px;min-width:100px;}
-  .sum-label{font-size:9px;text-transform:uppercase;color:#777;letter-spacing:.5px;}
-  .sum-value{font-size:15px;font-weight:700;color:#111;}
-  .sum-value.gold{color:#c8961a;}
-  .sum-value.green{color:#1a8a3a;}
-  .sum-value.red{color:#b22020;}
-  table{border-collapse:collapse;width:100%;font-size:10px;}
-  th{background:#1a2236;color:#fff;padding:5px 6px;text-align:center;white-space:nowrap;font-size:9px;text-transform:uppercase;letter-spacing:.4px;}
-  th.th-group{background:#0d1525;border-bottom:1px solid #c8961a;}
-  td{padding:4px 6px;border-bottom:1px solid #e5e7eb;text-align:center;white-space:nowrap;}
-  td.emp-id,td.emp-name,td.emp-pos{text-align:left;}
-  td.emp-name{font-weight:600;}
-  td.gross-val{font-weight:700;color:#c8961a;}
-  td.net-val{font-weight:700;color:#1a8a3a;}
-  td.ded-val{color:#b22020;}
-  td.gold-text{color:#c8961a;}
-  tfoot td{background:#f3f4f6;font-weight:700;border-top:2px solid #c8961a;padding:5px 6px;}
-  tfoot td.lbl{text-align:left;color:#c8961a;font-size:10px;letter-spacing:.5px;}
-  tfoot td.gross-tot{color:#c8961a;}
-  tfoot td.net-tot{color:#1a8a3a;}
-  tfoot td.ded-tot{color:#b22020;}
-  input.edit-cell{border:none;background:transparent;width:70px;font-size:10px;text-align:right;}
-  @media print{
-    @page{size:landscape;margin:12mm;}
-    body{padding:0;}
-  }
-</style>
-</head><body>
-<h2>ACEtech — Payroll Summary</h2>
-<p class="sub">${periodLabel} &nbsp;·&nbsp; Printed ${new Date().toLocaleString()}</p>
-${summaryHTML}
-${tableHTML}
-<script>window.onload=()=>{window.print();}<\/script>
-</body></html>`);
-  win.document.close();
+  const tableCSS = `
+    *{box-sizing:border-box;margin:0;padding:0;}
+    body{font-family:'Segoe UI',Arial,sans-serif;font-size:11px;color:#111;background:#fff;padding:16px;}
+    h2{font-size:15px;font-weight:700;margin-bottom:4px;text-transform:uppercase;letter-spacing:1px;}
+    p.sub{font-size:11px;color:#555;margin-bottom:12px;}
+    .summary-strip{display:flex;gap:14px;margin-bottom:14px;flex-wrap:wrap;}
+    .sum-card{border:1px solid #ccc;border-radius:6px;padding:7px 12px;min-width:90px;}
+    .sum-label{font-size:9px;text-transform:uppercase;color:#777;letter-spacing:.5px;}
+    .sum-value{font-size:14px;font-weight:700;color:#111;}
+    .sum-value.gold{color:#b8860b;}
+    .sum-value.green{color:#166534;}
+    .sum-value.red{color:#b91c1c;}
+    table{border-collapse:collapse;width:100%;font-size:9.5px;}
+    th{background:#1a2236;color:#fff;padding:4px 5px;text-align:center;white-space:nowrap;font-size:8.5px;text-transform:uppercase;letter-spacing:.3px;}
+    th.th-group{background:#0d1525;border-bottom:1px solid #b8860b;color:#d4a017;}
+    td{padding:3px 5px;border-bottom:1px solid #e5e7eb;text-align:center;white-space:nowrap;}
+    td.emp-id,td.emp-name,td.emp-pos{text-align:left;}
+    td.emp-name{font-weight:600;}
+    td.gross-val{font-weight:700;color:#b8860b;}
+    td.gross-tot{color:#b8860b;font-weight:700;}
+    td.net-val,td.net-tot{font-weight:700;color:#166534;}
+    td.ded-val,td.ded-tot{color:#b91c1c;}
+    td.gold-text{color:#b8860b;}
+    td.zero{color:#aaa;}
+    tfoot td{background:#f3f4f6;font-weight:700;border-top:2px solid #b8860b;padding:4px 5px;}
+    tfoot td.lbl{text-align:left;color:#b8860b;font-size:9px;letter-spacing:.5px;}
+    @media print{@page{size:landscape;margin:10mm;}body{padding:0;}}
+  `;
+
+  openPrintWindow(
+    `ACEtech Payroll — ${periodLabel}`,
+    `<h2>ACEtech — Payroll Summary</h2>
+     <p class="sub">${periodLabel} &nbsp;·&nbsp; Printed ${new Date().toLocaleString()}</p>
+     ${summaryHTML}
+     ${tableClone.outerHTML}`,
+    tableCSS
+  );
 }
 
 function exportBankCSV() {
@@ -936,15 +1008,6 @@ function showSingleSlip(idx) {
   slipIndex = slipPool.findIndex(e => e === payrollData[idx]);
   if (slipIndex < 0) slipIndex = 0;
   renderSlipModal();
-}
-
-function showAllSlips() {
-  slipPool  = cycleFilteredPool();
-  if (!slipPool.length) { alert('No employees with pay to display.'); return; }
-  // Build print zone with all payslips
-  const pz = document.getElementById('print-zone');
-  pz.innerHTML = slipPool.map(e => `<div class="payslip-page">${buildPayslipHTML(e)}</div>`).join('');
-  window.print();
 }
 
 function renderSlipModal() {
