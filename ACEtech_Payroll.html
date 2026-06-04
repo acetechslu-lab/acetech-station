@@ -370,6 +370,7 @@ table.payroll tfoot td.ded-tot{color:var(--red);}
             <th style="padding:8px 10px;text-align:center;color:var(--muted);font-size:10px;text-transform:uppercase;letter-spacing:1px;border-bottom:1px solid var(--border);">DR/CR</th>
             <th style="padding:8px 10px;text-align:left;color:var(--muted);font-size:10px;text-transform:uppercase;letter-spacing:1px;border-bottom:1px solid var(--border);">Due Date</th>
             <th style="padding:8px 10px;text-align:left;color:var(--muted);font-size:10px;text-transform:uppercase;letter-spacing:1px;border-bottom:1px solid var(--border);">Pay Cycle</th>
+            <th style="padding:8px 10px;text-align:left;color:var(--gold);font-size:10px;text-transform:uppercase;letter-spacing:1px;border-bottom:1px solid var(--border);">Tax Code</th>
           </tr>
         </thead>
         <tbody id="banking-tbody"></tbody>
@@ -986,6 +987,7 @@ function buildPayslipHTML(emp) {
       <div class="ps-field"><div class="ps-field-label">NIC #</div><div class="ps-field-value">${escHtml(emp.nicNum || (emp.id ? emp.id.replace(/^ACE/i, '') : ''))}</div></div>
       <div class="ps-field"><div class="ps-field-label">Rate / Hour</div><div class="ps-field-value">$${r2(emp.rate).toFixed(2)}</div></div>
       <div class="ps-field"><div class="ps-field-label">Pay Cycle</div><div class="ps-field-value">${escHtml(emp.payCycle)}</div></div>
+      <div class="ps-field"><div class="ps-field-label">Tax Code</div><div class="ps-field-value" style="font-family:monospace;color:#8a6c18;font-weight:700;">${escHtml(emp.taxCode || '—')}</div></div>
     </div>
 
     <div class="ps-sections">
@@ -1144,6 +1146,12 @@ function renderBankingTable() {
           <option value="Monthly" ${emp.payCycle==='Monthly'?'selected':''}>Monthly</option>
         </select>
       </td>
+      <td style="padding:6px 4px;">
+        <input class="edit-cell" style="width:80px;text-transform:uppercase;font-family:monospace;font-weight:700;color:var(--gold);" type="text" data-i="${i}" data-f="taxCode"
+          value="${escHtml(emp.taxCode||'')}" placeholder="184M"
+          title="Format: number + M/F/W  e.g. 184M · 320F · 250W"
+          oninput="this.value=this.value.toUpperCase()">
+      </td>
     `;
     tbody.appendChild(row);
   });
@@ -1176,7 +1184,8 @@ async function saveBankingDetails() {
         acctType:  emp.acctType   || 'DDA',
         cuAcct:    emp.cuAcct     || '',
         drcr:      emp.drcr       || 'CREDIT',
-        paycycle:  emp.payCycle   || 'Fortnightly'
+        paycycle:  emp.payCycle   || 'Fortnightly',
+        taxCode:   (emp.taxCode   || '').toUpperCase()
       });
       const res  = await fetch(`${WEB_APP_URL}?${p}`);
       const data = await res.json();
