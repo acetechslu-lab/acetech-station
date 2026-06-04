@@ -573,8 +573,6 @@ function renderPayrollTable() {
   tbody.innerHTML = '';
   tfoot.innerHTML = '';
 
-  let totReg=0, totOT=0, totGross=0, totDed=0, totNet=0, totEmp=0, totBasicPay=0, totNIC=0;
-
   payrollData.forEach((emp, idx) => {
     // ── Pay-cycle filter: only show employees matching the selected period type ──
     const empCycle      = (emp.payCycle || 'Fortnightly').trim();
@@ -583,14 +581,6 @@ function renderPayrollTable() {
     if (!isMonthlyMode && empCycle === 'Monthly')   return; // Fortnightly mode → hide Monthly staff
     // Skip employees with no pay in either mode
     if (r2(emp.gross) === 0 && r2(emp.netPay) === 0) return;
-    totEmp++;
-    totReg      += r2(emp.regHrs);
-    totOT       += r2(emp.otHrs);
-    totGross    += r2(emp.gross);
-    totDed      += r2(emp.totalDed);
-    totNet      += r2(emp.netPay);
-    totBasicPay += r2(emp.basicPay);
-    totNIC      += r2(emp.nic);
 
     const row = document.createElement('tr');
     row.dataset.idx = idx;
@@ -604,13 +594,13 @@ function renderPayrollTable() {
       <td class="${r2(emp.otHrs)>0?'gold-text':''}">${hrs(emp.otHrs)}</td>
       <td>${cur(emp.basicPay)}</td>
       <td>${cur(emp.otPay)}</td>
-      <td>${cur(emp.allowance)}</td>
+      <td><input type="number" class="edit-cell" data-field="allowance" data-idx="${idx}" value="${r2(emp.allowance)||''}" placeholder="0.00" step="0.01" min="0" onchange="onAdjChange(${idx},'allowance',this.value)"></td>
       <td><input type="number" class="edit-cell" data-field="bonus" data-idx="${idx}" value="${r2(emp.bonus)||''}" placeholder="0.00" step="0.01" min="0" onchange="onAdjChange(${idx},'bonus',this.value)"></td>
       <td><input type="number" class="edit-cell" data-field="backPay" data-idx="${idx}" value="${r2(emp.backPay)||''}" placeholder="0.00" step="0.01" min="0" onchange="onAdjChange(${idx},'backPay',this.value)"></td>
       <td class="gross-val">$${r2(emp.gross).toFixed(2)}</td>
-      <td class="ded-val">${cur(emp.nic)}</td>
-      <td class="ded-val">${cur(emp.paye)}</td>
-      <td class="ded-val">${cur(emp.healthIns)}</td>
+      <td class="ded-val nic-val">${cur(emp.nic)}</td>
+      <td><input type="number" class="edit-cell" data-field="paye" data-idx="${idx}" value="${r2(emp.paye)||''}" placeholder="0.00" step="0.01" min="0" onchange="onAdjChange(${idx},'paye',this.value)"></td>
+      <td><input type="number" class="edit-cell" data-field="healthIns" data-idx="${idx}" value="${r2(emp.healthIns)||''}" placeholder="0.00" step="0.01" min="0" onchange="onAdjChange(${idx},'healthIns',this.value)"></td>
       <td><input type="number" class="edit-cell" data-field="salAdv" data-idx="${idx}" value="${r2(emp.salAdv)||''}" placeholder="0.00" step="0.01" min="0" onchange="onAdjChange(${idx},'salAdv',this.value)"></td>
       <td><input type="number" class="edit-cell" data-field="loan" data-idx="${idx}" value="${r2(emp.loan)||''}" placeholder="0.00" step="0.01" min="0" onchange="onAdjChange(${idx},'loan',this.value)"></td>
       <td><input type="number" class="edit-cell" data-field="other" data-idx="${idx}" value="${r2(emp.other)||''}" placeholder="0.00" step="0.01" min="0" onchange="onAdjChange(${idx},'other',this.value)"></td>
@@ -620,32 +610,63 @@ function renderPayrollTable() {
     tbody.appendChild(row);
   });
 
-  // Footer totals
-  // Column layout (21 cols total):
-  // 0-4: label | 5: RegHrs | 6: OTHrs | 7: BasicPay | 8-11: OTPay/Allow/Bonus/BackPay
-  // 12: GROSS | 13: NIC | 14-18: PAYE/Health/SalAdv/Loan/Other | 19: NET PAY | 20: Payslip
-  tfoot.innerHTML = `
+  refreshTotals();
+}
+
+// ══════════════════════════════════════════════════════════════════════════
+// REFRESH TOTALS — recalculates tfoot + summary strip from current payrollData
+// Called after initial render AND after every onAdjChange
+// ══════════════════════════════════════════════════════════════════════════
+function refreshTotals() {
+  const isMonthlyMode = (periodType === 'Monthly');
+  let tReg=0, tOT=0, tGross=0, tDed=0, tNet=0, tEmp=0, tBasicPay=0, tNIC=0, tPaye=0, tHealth=0, tAllow=0;
+
+  payrollData.forEach(emp => {
+    const empCycle = (emp.payCycle || 'Fortnightly').trim();
+    if ( isMonthlyMode && empCycle !== 'Monthly') return;
+    if (!isMonthlyMode && empCycle === 'Monthly') return;
+    if (r2(emp.gross) === 0 && r2(emp.netPay) === 0) return;
+    tEmp++;
+    tReg      += r2(emp.regHrs);
+    tOT       += r2(emp.otHrs);
+    tGross    += r2(emp.gross);
+    tDed      += r2(emp.totalDed);
+    tNet      += r2(emp.netPay);
+    tBasicPay += r2(emp.basicPay);
+    tNIC      += r2(emp.nic);
+    tPaye     += r2(emp.paye);
+    tHealth   += r2(emp.healthIns);
+    tAllow    += r2(emp.allowance);
+  });
+
+  // Column layout (21 cols):
+  // 0-4:label | 5:RegHrs | 6:OTHrs | 7:BasicPay | 8:OTPay | 9:Allow | 10:Bonus | 11:BackPay
+  // 12:GROSS | 13:NIC | 14:PAYE | 15:Health | 16:SalAdv | 17:Loan | 18:Other | 19:NetPay | 20:Payslip
+  document.getElementById('payroll-tfoot').innerHTML = `
     <tr>
-      <td class="lbl" colspan="5">TOTALS — ${totEmp} employees</td>
-      <td>${totReg.toFixed(2)}</td>
-      <td>${totOT.toFixed(2)}</td>
-      <td class="gross-tot">$${totBasicPay.toFixed(2)}</td>
-      <td colspan="4"></td>
-      <td class="gross-tot">$${totGross.toFixed(2)}</td>
-      <td class="ded-tot">$${totNIC.toFixed(2)}</td>
-      <td colspan="5"></td>
-      <td class="net-tot">$${totNet.toFixed(2)}</td>
+      <td class="lbl" colspan="5">TOTALS — ${tEmp} employees</td>
+      <td>${tReg.toFixed(2)}</td>
+      <td>${tOT.toFixed(2)}</td>
+      <td class="gross-tot">$${tBasicPay.toFixed(2)}</td>
+      <td></td>
+      <td class="gross-tot">$${tAllow.toFixed(2)}</td>
+      <td colspan="2"></td>
+      <td class="gross-tot">$${tGross.toFixed(2)}</td>
+      <td class="ded-tot">$${tNIC.toFixed(2)}</td>
+      <td class="ded-tot">$${tPaye.toFixed(2)}</td>
+      <td class="ded-tot">$${tHealth.toFixed(2)}</td>
+      <td colspan="3"></td>
+      <td class="net-tot">$${tNet.toFixed(2)}</td>
       <td></td>
     </tr>
   `;
 
-  // Summary strip
-  document.getElementById('sum-emp').textContent   = totEmp;
-  document.getElementById('sum-reg').textContent   = totReg.toFixed(1);
-  document.getElementById('sum-ot').textContent    = totOT.toFixed(1);
-  document.getElementById('sum-gross').textContent = '$' + totGross.toFixed(2);
-  document.getElementById('sum-ded').textContent   = '$' + totDed.toFixed(2);
-  document.getElementById('sum-net').textContent   = '$' + totNet.toFixed(2);
+  document.getElementById('sum-emp').textContent   = tEmp;
+  document.getElementById('sum-reg').textContent   = tReg.toFixed(1);
+  document.getElementById('sum-ot').textContent    = tOT.toFixed(1);
+  document.getElementById('sum-gross').textContent = '$' + tGross.toFixed(2);
+  document.getElementById('sum-ded').textContent   = '$' + tDed.toFixed(2);
+  document.getElementById('sum-net').textContent   = '$' + tNet.toFixed(2);
 }
 
 // ══════════════════════════════════════════════════════════════════════════
@@ -655,7 +676,7 @@ function onAdjChange(idx, field, value) {
   const emp = payrollData[idx];
   if (!emp) return;
   emp[field] = parseFloat(value) || 0;
-  // Recompute gross, NIC, totalDed, netPay
+  // Recompute derived values — allowance, bonus, backPay affect gross; paye, healthIns affect deductions
   const gross    = r2(emp.basicPay + emp.otPay + emp.allowance + emp.bonus + emp.backPay);
   const nic      = r2(gross * 0.05);
   const totalDed = r2(nic + emp.healthIns + emp.paye + emp.salAdv + emp.loan + emp.other);
@@ -664,16 +685,20 @@ function onAdjChange(idx, field, value) {
   emp.nic      = nic;
   emp.totalDed = totalDed;
   emp.netPay   = netPay;
-  // Update visible cells in this row
+  // Update computed cells in this row (inputs are live; only update the calculated displays)
   const row = document.querySelector(`tr[data-idx="${idx}"]`);
   if (row) {
     row.querySelector('.gross-val').textContent = '$' + gross.toFixed(2);
+    row.querySelector('.nic-val').textContent   = nic > 0 ? '$' + nic.toFixed(2) : '—';
     row.querySelector('.net-val').textContent   = '$' + netPay.toFixed(2);
   }
+  // Refresh all footer totals immediately
+  refreshTotals();
   // Show unsaved notice
-  document.getElementById('save-adj-btn').style.background = 'rgba(201,162,39,.2)';
-  document.getElementById('save-adj-btn').style.borderColor = 'var(--gold)';
-  document.getElementById('save-adj-btn').style.color = 'var(--gold)';
+  const btn = document.getElementById('save-adj-btn');
+  btn.style.background  = 'rgba(201,162,39,.2)';
+  btn.style.borderColor = 'var(--gold)';
+  btn.style.color       = 'var(--gold)';
 }
 
 // ══════════════════════════════════════════════════════════════════════════
@@ -685,13 +710,17 @@ async function saveAdjustments() {
   btn.disabled = true;
   try {
     const rows = payrollData.map(e => ({
-      id: e.id,
-      bonus:   r2(e.bonus),
-      backPay: r2(e.backPay),
-      salAdv:  r2(e.salAdv),
-      loan:    r2(e.loan),
-      other:   r2(e.other),
-      note:    e.note || ''
+      id:         e.id,
+      bonus:      r2(e.bonus),
+      backPay:    r2(e.backPay),
+      salAdv:     r2(e.salAdv),
+      loan:       r2(e.loan),
+      other:      r2(e.other),
+      note:       e.note || '',
+      // Per-period overrideable fields
+      paye:       r2(e.paye),
+      healthIns:  r2(e.healthIns),
+      allowance:  r2(e.allowance)
     }));
     const p = new URLSearchParams({
       action: 'saveAdjustments',
