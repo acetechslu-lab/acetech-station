@@ -213,6 +213,7 @@ table.payroll tfoot td.ded-tot{color:var(--red);}
     </div>
   </div>
   <div class="header-right">
+    <button class="hdr-btn" onclick="openDevicesModal()">📱 Manage Devices</button>
     <button class="hdr-btn" onclick="openBankingEditor()">⚙ Employee Banking</button>
     <button class="hdr-btn primary" onclick="exportBankCSV()" id="csv-btn" disabled>⬇ Export Bank CSV</button>
     <button class="hdr-btn" onclick="printPayrollPage()" id="print-payroll-btn" disabled>🖨 Print / PDF</button>
@@ -338,6 +339,47 @@ table.payroll tfoot td.ded-tot{color:var(--red);}
 <div id="print-zone"></div>
 
 <!-- ══════════════════════════════════════════════════════════════════════
+     DEVICES MODAL
+══════════════════════════════════════════════════════════════════════ -->
+<div id="devices-modal" style="display:none;position:fixed;inset:0;z-index:300;background:rgba(10,15,26,.96);align-items:flex-start;justify-content:center;overflow-y:auto;padding:20px;">
+  <div style="background:var(--card);border:1px solid var(--border);border-radius:16px;width:100%;max-width:560px;margin:auto;overflow:hidden;">
+    <div style="padding:20px 24px;border-bottom:1px solid var(--border);display:flex;align-items:center;justify-content:space-between;">
+      <div>
+        <div style="font-family:'Barlow Condensed',sans-serif;font-size:20px;font-weight:700;color:var(--white);">📱 Manage Devices</div>
+        <div style="font-size:12px;color:var(--muted);margin-top:2px;">Pre-register stations and view registered devices</div>
+      </div>
+      <button onclick="closeDevicesModal()" style="background:none;border:1px solid var(--border);color:var(--muted);border-radius:8px;padding:6px 12px;cursor:pointer;font-size:14px;">✕ Close</button>
+    </div>
+    <div style="padding:24px;">
+
+      <!-- Pre-register new device -->
+      <div style="background:var(--surface);border:1px solid var(--border);border-radius:12px;padding:20px;margin-bottom:24px;">
+        <div style="font-family:'Barlow Condensed',sans-serif;font-size:16px;font-weight:700;color:var(--gold);margin-bottom:12px;text-transform:uppercase;letter-spacing:1px;">Pre-register New Device</div>
+        <div style="font-size:13px;color:var(--muted);margin-bottom:14px;">Enter a name for the new station. A one-time registration code will be generated for the supervisor to use on-site.</div>
+        <input type="text" id="new-device-name" placeholder="Device name (e.g. Site Tablet, Office Cell)" class="auth-input" style="margin-bottom:10px;">
+        <button onclick="preRegisterDevice()" class="act-btn primary" style="width:100%;justify-content:center;">Generate Registration Code</button>
+        <div id="prereg-error" class="auth-error"></div>
+        <div id="prereg-result" style="display:none;margin-top:16px;background:rgba(34,197,94,.08);border:1px solid rgba(34,197,94,.3);border-radius:10px;padding:16px;text-align:center;">
+          <div style="font-size:13px;color:var(--muted);margin-bottom:6px;">Share this code with the supervisor on-site:</div>
+          <div id="prereg-code" style="font-family:'Barlow Condensed',sans-serif;font-size:38px;font-weight:800;color:var(--green);letter-spacing:6px;"></div>
+          <div id="prereg-device-label" style="font-size:12px;color:var(--muted);margin-top:4px;"></div>
+          <div style="font-size:12px;color:var(--muted);margin-top:8px;">The supervisor opens the app, enters this code, and sets their own 4-digit PIN. The code is consumed after one use.</div>
+        </div>
+      </div>
+
+      <!-- Registered devices list -->
+      <div>
+        <div style="font-family:'Barlow Condensed',sans-serif;font-size:16px;font-weight:700;color:var(--white);margin-bottom:12px;text-transform:uppercase;letter-spacing:1px;">Registered Devices</div>
+        <div id="devices-list-area">
+          <div style="color:var(--muted);font-size:13px;text-align:center;padding:20px;">Loading…</div>
+        </div>
+      </div>
+
+    </div>
+  </div>
+</div>
+
+<!-- ══════════════════════════════════════════════════════════════════════
      BANKING EDITOR MODAL
 ══════════════════════════════════════════════════════════════════════ -->
 <div id="banking-modal" style="display:none;position:fixed;inset:0;z-index:300;background:rgba(10,15,26,.96);align-items:flex-start;justify-content:center;overflow-y:auto;padding:20px;">
@@ -388,7 +430,7 @@ table.payroll tfoot td.ded-tot{color:var(--red);}
 // ══════════════════════════════════════════════════════════════════════════
 // CONFIG
 // ══════════════════════════════════════════════════════════════════════════
-const WEB_APP_URL    = "https://script.google.com/macros/s/AKfycbyo2ujN6eGRhI2omit6HUfLA-h6eRQIDXEdoFqcbKQH17wleHNRCDEKPTj9MAnPRYP_/exec";
+const WEB_APP_URL    = "https://script.google.com/macros/s/AKfycbzG_emTfDuxvwE6WWLa7vnWn2_gNoTmv3fOe8NwoV1mMr8xYQeV3ORLmRD6pVs9qBWM/exec";
 const DEFAULT_PIN    = "1234";  // Admin password — change to match your attendance app
 const ADMIN_PASS_KEY = 'acetech_admin_pass';
 
@@ -538,6 +580,15 @@ async function loadPayroll() {
 
     payrollData = data.payroll;
     adjKey      = data.adjKey;
+    // Pre-seed backPay from pending BP items if no saved adjustment exists yet
+    payrollData.forEach(emp => {
+      emp.pendingBP      = emp.pendingBP      || [];
+      emp.pendingBPTotal = r2(emp.pendingBPTotal || 0);
+      if (r2(emp.backPay) === 0 && emp.pendingBPTotal > 0) {
+        emp.backPay    = emp.pendingBPTotal;
+        emp._bpSeeded  = true;
+      }
+    });
     renderPayrollTable();
     status.textContent = `✓ ${payrollData.length} employees loaded`;
     status.className   = 'cp-status ok';
@@ -597,7 +648,10 @@ function renderPayrollTable() {
       <td>${cur(emp.otPay)}</td>
       <td><input type="number" class="edit-cell" data-field="allowance" data-idx="${idx}" value="${r2(emp.allowance)||''}" placeholder="0.00" step="0.01" min="0" onchange="onAdjChange(${idx},'allowance',this.value)"></td>
       <td><input type="number" class="edit-cell" data-field="bonus" data-idx="${idx}" value="${r2(emp.bonus)||''}" placeholder="0.00" step="0.01" min="0" onchange="onAdjChange(${idx},'bonus',this.value)"></td>
-      <td><input type="number" class="edit-cell" data-field="backPay" data-idx="${idx}" value="${r2(emp.backPay)||''}" placeholder="0.00" step="0.01" min="0" onchange="onAdjChange(${idx},'backPay',this.value)"></td>
+      <td>
+        <input type="number" class="edit-cell" data-field="backPay" data-idx="${idx}" value="${r2(emp.backPay)||''}" placeholder="0.00" step="0.01" min="0" onchange="onAdjChange(${idx},'backPay',this.value)">
+        ${emp.pendingBPTotal > 0 ? `<div title="${emp.pendingBP.map(x=>'EC$'+x.amount.toFixed(2)+': '+x.reason).join('\n')}" style="font-size:10px;color:#f59e0b;margin-top:3px;cursor:help;">⚡ ${emp.pendingBP.length} pending item${emp.pendingBP.length>1?'s':''}</div>` : ''}
+      </td>
       <td class="gross-val">$${r2(emp.gross).toFixed(2)}</td>
       <td class="ded-val nic-val">${cur(emp.nic)}</td>
       <td><input type="number" class="edit-cell" data-field="paye" data-idx="${idx}" value="${r2(emp.paye)||''}" placeholder="0.00" step="0.01" min="0" onchange="onAdjChange(${idx},'paye',this.value)"></td>
@@ -723,10 +777,18 @@ async function saveAdjustments() {
       healthIns:  r2(e.healthIns),
       allowance:  r2(e.allowance)
     }));
+    // Collect pending BP IDs to mark as Applied
+    const appliedBpIds = [];
+    payrollData.forEach(e => {
+      if (e.pendingBP && e.pendingBP.length > 0 && r2(e.backPay) >= r2(e.pendingBPTotal)) {
+        e.pendingBP.forEach(item => appliedBpIds.push(item.id));
+      }
+    });
     const p = new URLSearchParams({
       action: 'saveAdjustments',
       adjKey,
-      rows: JSON.stringify(rows)
+      rows: JSON.stringify(rows),
+      ...(appliedBpIds.length ? { appliedBpIds: JSON.stringify(appliedBpIds) } : {})
     });
     const res  = await fetch(`${WEB_APP_URL}?${p}`);
     const data = await res.json();
@@ -1083,6 +1145,88 @@ function navSlip(dir) {
 
 function closeSlipModal() {
   document.getElementById('slip-modal').classList.remove('show');
+}
+
+// ══════════════════════════════════════════════════════════════════════════
+// DEVICES MODAL
+// ══════════════════════════════════════════════════════════════════════════
+async function openDevicesModal() {
+  document.getElementById('devices-modal').style.display = 'flex';
+  document.getElementById('prereg-result').style.display = 'none';
+  document.getElementById('prereg-error').classList.remove('show');
+  document.getElementById('new-device-name').value = '';
+  await loadDevicesList();
+}
+
+function closeDevicesModal() {
+  document.getElementById('devices-modal').style.display = 'none';
+}
+
+async function loadDevicesList() {
+  const area = document.getElementById('devices-list-area');
+  area.innerHTML = '<div style="color:var(--muted);font-size:13px;text-align:center;padding:20px;">Loading…</div>';
+  try {
+    const res  = await fetch(`${WEB_APP_URL}?action=getDevicesList`);
+    const data = await res.json();
+    if (!data.success || !data.devices.length) {
+      area.innerHTML = '<div style="color:var(--muted);font-size:13px;text-align:center;padding:20px;">No devices registered yet.</div>';
+      return;
+    }
+    area.innerHTML = data.devices.map(d => {
+      const isPending = d.status === 'Pending';
+      const badge = isPending
+        ? `<span style="background:rgba(249,115,22,.15);color:#f97316;border:1px solid rgba(249,115,22,.3);border-radius:6px;padding:2px 8px;font-size:11px;font-weight:700;">PENDING</span>`
+        : `<span style="background:rgba(34,197,94,.1);color:#22c55e;border:1px solid rgba(34,197,94,.25);border-radius:6px;padding:2px 8px;font-size:11px;font-weight:700;">ACTIVE</span>`;
+      return `<div style="display:flex;align-items:center;justify-content:space-between;padding:12px 14px;background:var(--surface);border:1px solid var(--border);border-radius:10px;margin-bottom:8px;">
+        <div>
+          <div style="font-weight:600;font-size:14px;">${d.name}</div>
+          <div style="font-size:11px;color:var(--muted);margin-top:2px;">Added ${d.dateAdded}</div>
+        </div>
+        <div style="display:flex;align-items:center;gap:10px;">
+          ${badge}
+          <button onclick="removeDevice('${d.name.replace(/'/g,"\\'")}', this)" style="background:none;border:1px solid rgba(239,68,68,.3);color:var(--red);border-radius:6px;padding:4px 10px;font-size:12px;cursor:pointer;">Remove</button>
+        </div>
+      </div>`;
+    }).join('');
+  } catch(err) {
+    area.innerHTML = `<div style="color:var(--red);font-size:13px;text-align:center;padding:20px;">Could not load devices.</div>`;
+  }
+}
+
+async function preRegisterDevice() {
+  const name   = document.getElementById('new-device-name').value.trim();
+  const errEl  = document.getElementById('prereg-error');
+  const result = document.getElementById('prereg-result');
+  errEl.classList.remove('show');
+  result.style.display = 'none';
+
+  if (!name) { errEl.textContent = 'Enter a device name.'; errEl.classList.add('show'); return; }
+
+  try {
+    const res  = await fetch(`${WEB_APP_URL}?action=createPendingDevice&name=${encodeURIComponent(name)}`);
+    const data = await res.json();
+    if (!data.success) { errEl.textContent = data.error || 'Failed to generate code.'; errEl.classList.add('show'); return; }
+    document.getElementById('prereg-code').textContent = data.regCode;
+    document.getElementById('prereg-device-label').textContent = `Device: ${name}${data.reissued ? ' (new code issued)' : ''}`;
+    result.style.display = 'block';
+    document.getElementById('new-device-name').value = '';
+    await loadDevicesList();
+  } catch(err) {
+    errEl.textContent = 'Could not connect to server.'; errEl.classList.add('show');
+  }
+}
+
+async function removeDevice(name, btn) {
+  if (!confirm(`Remove device "${name}"? The device will need to be re-registered to use the app.`)) return;
+  btn.disabled = true;
+  try {
+    const res  = await fetch(`${WEB_APP_URL}?action=removeDevice&name=${encodeURIComponent(name)}`);
+    const data = await res.json();
+    if (data.success) await loadDevicesList();
+    else alert(data.error || 'Could not remove device.');
+  } catch(err) {
+    alert('Could not connect.'); btn.disabled = false;
+  }
 }
 
 // ══════════════════════════════════════════════════════════════════════════
