@@ -10,6 +10,7 @@
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
 <meta name="apple-mobile-web-app-title" content="ACEtech">
 <meta name="mobile-web-app-capable" content="yes">
+<link rel="manifest" href="manifest.json">
 <link href="https://fonts.googleapis.com/css2?family=Barlow+Condensed:wght@300;400;600;700;800&family=Barlow:wght@300;400;500;600&display=swap" rel="stylesheet">
 <script src="https://cdnjs.cloudflare.com/ajax/libs/html5-qrcode/2.3.8/html5-qrcode.min.js"></script>
 <style>
@@ -402,13 +403,20 @@
     <div class="screen-sub">Attendance Station</div>
     <div class="blocked-icon">🚫</div>
     <div class="screen-title">Device Not Authorised</div>
-    <div class="screen-desc">This device is not registered to use the ACEtech Attendance Station. Please contact your administrator to register this device.</div>
+    <div class="screen-desc">This device is not registered. Use the registration code provided by your admin to activate it.</div>
     <div style="margin-bottom:16px;">
       <div class="admin-section-title" style="margin-bottom:8px;">Your Device Code</div>
       <div class="device-code-box" id="blocked-device-code">-</div>
     </div>
-    <div class="auth-error show" id="blocked-hint" style="color:var(--muted);">Give this code to your admin to get approved.</div>
-    <button class="auth-btn secondary" style="margin-top:12px;" onclick="showAdminRegister()">Admin: Register This Device</button>
+    <div style="width:100%;margin-top:8px;">
+      <input type="text" class="auth-input" id="activate-code" placeholder="Registration code (e.g. A3K7PX)" maxlength="6" autocomplete="off" style="text-transform:uppercase;letter-spacing:3px;font-family:'Barlow Condensed',sans-serif;font-size:20px;font-weight:700;text-align:center;">
+      <input type="password" class="auth-input" id="activate-pin" placeholder="Set your 4-digit PIN" maxlength="4" pattern="\d{4}" autocomplete="off" style="margin-top:8px;">
+      <div class="auth-error" id="activate-error"></div>
+      <button class="auth-btn" style="margin-top:10px;" onclick="activateWithCode()">Activate This Device</button>
+    </div>
+    <div style="border-top:1px solid var(--border);margin-top:18px;padding-top:14px;width:100%;text-align:center;">
+      <button class="auth-btn secondary" onclick="showAdminRegister()" style="font-size:12px;padding:8px 16px;">Admin: Register This Device</button>
+    </div>
   </div>
 </div>
 
@@ -770,74 +778,213 @@
         <!-- Unlocked form -->
         <div id="entry-form" style="display:none;flex-direction:column;gap:12px;">
 
-          <!-- Lock again button + Clear -->
-          <div style="display:flex;justify-content:space-between;align-items:center;">
-            <div style="font-size:11px;text-transform:uppercase;letter-spacing:1.5px;color:var(--gold);font-weight:600;">✏️ Manual Time Entry</div>
+          <!-- Header: title + mode toggle + lock/clear -->
+          <div style="display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:8px;">
+            <div style="font-size:11px;text-transform:uppercase;letter-spacing:1.5px;color:var(--gold);font-weight:600;" id="entry-mode-label">✏️ Manual Time Entry</div>
             <div style="display:flex;gap:6px;">
               <button onclick="clearManualEntryForm()" style="background:transparent;border:1px solid var(--border);color:var(--muted);border-radius:6px;padding:4px 10px;font-size:11px;cursor:pointer;">✕ Clear</button>
               <button onclick="lockManualEntry()" style="background:transparent;border:1px solid var(--border);color:var(--muted);border-radius:6px;padding:4px 10px;font-size:11px;cursor:pointer;">🔒 Lock</button>
             </div>
           </div>
 
-          <!-- Employee selector -->
-          <div>
-            <label class="field-label">Employee</label>
-            <div class="search-wrap">
-              <input type="text" class="text-input" id="entry-name-search" placeholder="Type name to search..."
-                autocomplete="off" oninput="searchEntryEmployee(this.value)" style="font-size:14px;letter-spacing:0.5px;">
-              <div class="name-results" id="entry-name-results"></div>
-            </div>
-            <input type="hidden" id="entry-emp-id">
-            <div id="entry-emp-badge" style="display:none;margin-top:6px;text-align:center;">
-              <span style="background:var(--surface);border:1px solid var(--gold);border-radius:6px;padding:3px 14px;font-family:'Barlow Condensed',sans-serif;font-size:13px;letter-spacing:2px;color:var(--gold);" id="entry-emp-badge-text">-</span>
-            </div>
+          <!-- Mode toggle -->
+          <div style="display:flex;background:var(--surface);border:1px solid var(--border);border-radius:8px;overflow:hidden;">
+            <button id="toggle-time-btn" onclick="setEntryMode('time')"
+              style="flex:2;padding:9px 6px;font-size:12px;font-weight:700;letter-spacing:0.5px;border:none;cursor:pointer;background:var(--gold);color:#0a0f1a;transition:all .2s;">
+              ⏱ Manual Entry
+            </button>
+            <button id="toggle-bp-btn" onclick="setEntryMode('backpay')"
+              style="flex:1;padding:9px 6px;font-size:12px;font-weight:700;letter-spacing:0.5px;border:none;cursor:pointer;background:transparent;color:var(--muted);transition:all .2s;">
+              💰 Back Pay
+            </button>
           </div>
 
-          <!-- Date picker -->
-          <div>
-            <label class="field-label">Date</label>
-            <input type="date" class="text-input" id="entry-date"
-              style="font-size:15px;letter-spacing:0.5px;cursor:pointer;">
-          </div>
+          <!-- ── TIME ENTRY SECTION ── -->
+          <div id="time-entry-section">
 
-          <!-- Time pickers -->
-          <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;">
-            <div>
-              <label class="field-label">Clock In Time</label>
-              <input type="time" class="text-input" id="entry-clock-in"
+            <!-- Employee selector -->
+            <div style="margin-bottom:12px;">
+              <label class="field-label">Employee</label>
+              <div class="search-wrap">
+                <input type="text" class="text-input" id="entry-name-search" placeholder="Type name to search..."
+                  autocomplete="off" oninput="searchEntryEmployee(this.value)" style="font-size:14px;letter-spacing:0.5px;">
+                <div class="name-results" id="entry-name-results"></div>
+              </div>
+              <input type="hidden" id="entry-emp-id">
+              <div id="entry-emp-badge" style="display:none;margin-top:6px;text-align:center;">
+                <span style="background:var(--surface);border:1px solid var(--gold);border-radius:6px;padding:3px 14px;font-family:'Barlow Condensed',sans-serif;font-size:13px;letter-spacing:2px;color:var(--gold);" id="entry-emp-badge-text">-</span>
+              </div>
+            </div>
+
+            <!-- Date picker -->
+            <div style="margin-bottom:12px;">
+              <label class="field-label">Date</label>
+              <input type="date" class="text-input" id="entry-date"
                 style="font-size:15px;letter-spacing:0.5px;cursor:pointer;">
             </div>
-            <div>
-              <label class="field-label">Clock Out Time</label>
-              <input type="time" class="text-input" id="entry-clock-out"
-                style="font-size:15px;letter-spacing:0.5px;cursor:pointer;">
+
+            <!-- Time pickers -->
+            <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:12px;">
+              <div>
+                <label class="field-label">Clock In Time</label>
+                <input type="time" class="text-input" id="entry-clock-in"
+                  style="font-size:15px;letter-spacing:0.5px;cursor:pointer;">
+              </div>
+              <div>
+                <label class="field-label">Clock Out Time</label>
+                <input type="time" class="text-input" id="entry-clock-out"
+                  style="font-size:15px;letter-spacing:0.5px;cursor:pointer;">
+              </div>
             </div>
-          </div>
 
-          <!-- Site selector -->
-          <div>
-            <label class="field-label">📍 Work Site</label>
-            <select class="text-input" id="entry-site"
-              style="font-size:14px;cursor:pointer;">
-              <option value="">- Select a site -</option>
-            </select>
-          </div>
+            <!-- Site selector -->
+            <div style="margin-bottom:12px;">
+              <label class="field-label">📍 Work Site</label>
+              <select class="text-input" id="entry-site"
+                style="font-size:14px;cursor:pointer;">
+                <option value="">- Select a site -</option>
+              </select>
+            </div>
 
-          <!-- Note -->
-          <div>
-            <label class="field-label">Note (optional)</label>
-            <input type="text" class="text-input" id="entry-note" placeholder="e.g. Forgot to scan"
-              style="font-size:14px;letter-spacing:0.5px;">
-          </div>
+            <!-- Note -->
+            <div style="margin-bottom:12px;">
+              <label class="field-label">Note (optional)</label>
+              <input type="text" class="text-input" id="entry-note" placeholder="e.g. Forgot to scan"
+                style="font-size:14px;letter-spacing:0.5px;">
+            </div>
 
-          <!-- Submit -->
-          <button class="btn-action btn-clock-in" onclick="submitManualEntry()" id="entry-submit-btn"
-            style="margin-top:4px;font-size:16px;padding:14px;">
-            ✓ &nbsp; Submit Entry
-          </button>
+            <!-- Submit -->
+            <button class="btn-action btn-clock-in" onclick="submitManualEntry()" id="entry-submit-btn"
+              style="margin-top:4px;font-size:16px;padding:14px;">
+              ✓ &nbsp; Submit Entry
+            </button>
 
-          <!-- Result message -->
-          <div id="entry-result" style="display:none;border-radius:8px;padding:10px 14px;text-align:center;font-size:13px;font-weight:500;"></div>
+            <!-- Result message -->
+            <div id="entry-result" style="display:none;border-radius:8px;padding:10px 14px;text-align:center;font-size:13px;font-weight:500;margin-top:8px;"></div>
+
+          </div><!-- end #time-entry-section -->
+
+          <!-- ── BACK PAY SECTION ── -->
+          <div id="backpay-section" style="display:none;flex-direction:column;gap:12px;">
+
+            <!-- Employee selector -->
+            <div>
+              <label class="field-label">Employee</label>
+              <div class="search-wrap">
+                <input type="text" class="text-input" id="bp-name-search" placeholder="Type name to search..."
+                  autocomplete="off" oninput="searchBPEmployee(this.value)" style="font-size:14px;letter-spacing:0.5px;">
+                <div class="name-results" id="bp-name-results"></div>
+              </div>
+              <input type="hidden" id="bp-emp-id">
+              <input type="hidden" id="bp-emp-rate" value="0">
+              <input type="hidden" id="bp-emp-cycle" value="Fortnightly">
+              <div id="bp-emp-badge" style="display:none;margin-top:6px;text-align:center;">
+                <span style="background:var(--surface);border:1px solid var(--gold);border-radius:6px;padding:3px 14px;font-family:'Barlow Condensed',sans-serif;font-size:13px;letter-spacing:2px;color:var(--gold);" id="bp-emp-badge-text">-</span>
+              </div>
+            </div>
+
+            <!-- Date Worked -->
+            <div>
+              <label class="field-label">Date Worked</label>
+              <input type="date" class="text-input" id="bp-date-worked"
+                style="font-size:15px;letter-spacing:0.5px;cursor:pointer;">
+              <div style="font-size:11px;color:var(--muted);margin-top:4px;">The actual date the work was performed.</div>
+            </div>
+
+            <!-- Site -->
+            <div>
+              <label class="field-label">📍 Work Site</label>
+              <select class="text-input" id="bp-site" style="font-size:14px;cursor:pointer;">
+                <option value="">- Select a site -</option>
+              </select>
+            </div>
+
+            <!-- Clock In / Clock Out (always visible) -->
+            <div>
+              <label class="field-label">Clock In / Clock Out</label>
+              <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;">
+                <input type="time" class="text-input" id="bp-clock-in"
+                  style="font-size:15px;letter-spacing:0.5px;cursor:pointer;" oninput="calcBPHours()">
+                <input type="time" class="text-input" id="bp-clock-out"
+                  style="font-size:15px;letter-spacing:0.5px;cursor:pointer;" oninput="calcBPHours()">
+              </div>
+              <div style="font-size:11px;color:var(--muted);margin-top:4px;">Optional in Fixed mode — required for Calculate Hours.</div>
+            </div>
+
+            <!-- Pay Period End Date -->
+            <div>
+              <label class="field-label">Pay Period End Date</label>
+              <input type="date" class="text-input" id="bp-period-end"
+                style="font-size:15px;letter-spacing:0.5px;cursor:pointer;">
+              <div style="font-size:11px;color:var(--muted);margin-top:4px;">Must be a completed pay period — cannot be today or in the future.</div>
+            </div>
+
+            <!-- Amount mode toggle -->
+            <div>
+              <label class="field-label">Back Pay Type</label>
+              <div style="display:flex;background:var(--surface);border:1px solid var(--border);border-radius:8px;overflow:hidden;">
+                <button id="bp-mode-fixed-btn" onclick="setBPAmountMode('fixed')"
+                  style="flex:1;padding:8px 6px;font-size:11px;font-weight:700;letter-spacing:0.5px;border:none;cursor:pointer;background:var(--gold);color:#0a0f1a;transition:all .2s;">
+                  💵 Fixed Amount
+                </button>
+                <button id="bp-mode-hours-btn" onclick="setBPAmountMode('hours')"
+                  style="flex:1;padding:8px 6px;font-size:11px;font-weight:700;letter-spacing:0.5px;border:none;cursor:pointer;background:transparent;color:var(--muted);transition:all .2s;">
+                  ⏱ Calculate Hours
+                </button>
+              </div>
+            </div>
+
+            <!-- Fixed Amount input -->
+            <div id="bp-fixed-section">
+              <label class="field-label">Back Pay Amount (EC$)</label>
+              <input type="number" class="text-input" id="bp-amount" placeholder="0.00"
+                step="0.01" min="0.01" style="font-size:15px;letter-spacing:0.5px;"
+                oninput="updateBPPreview()">
+            </div>
+
+            <!-- Hours calc preview (shown only in Calculate Hours mode) -->
+            <div id="bp-hours-section" style="display:none;">
+              <div id="bp-calc-preview" style="display:none;background:rgba(201,162,39,0.08);border:1px solid rgba(201,162,39,0.25);border-radius:8px;padding:10px 14px;">
+                <div style="display:flex;justify-content:space-between;font-size:12px;color:var(--muted);margin-bottom:4px;">
+                  <span>Regular Hours</span><span id="bp-calc-reg">—</span>
+                </div>
+                <div style="display:flex;justify-content:space-between;font-size:12px;color:var(--muted);margin-bottom:4px;">
+                  <span>OT Hours (×1.5)</span><span id="bp-calc-ot">—</span>
+                </div>
+                <div style="display:flex;justify-content:space-between;font-size:13px;font-weight:700;color:var(--gold);border-top:1px solid rgba(201,162,39,0.2);padding-top:6px;margin-top:2px;">
+                  <span>Calculated Back Pay</span><span id="bp-calc-total">—</span>
+                </div>
+              </div>
+            </div>
+
+            <!-- Reason -->
+            <div>
+              <label class="field-label">Reason / Notes</label>
+              <input type="text" class="text-input" id="bp-reason" placeholder="e.g. Short payment week of June 1"
+                style="font-size:14px;letter-spacing:0.5px;">
+            </div>
+
+            <!-- Auto-datestamp notice -->
+            <div style="font-size:11px;color:var(--muted);text-align:center;padding:4px 0;">
+              📅 Date stamp applied automatically on save
+            </div>
+
+            <!-- Submit -->
+            <button class="btn-action btn-clock-in" onclick="submitBackPay()" id="bp-submit-btn"
+              style="font-size:16px;padding:14px;background:linear-gradient(135deg,#1a6b2a,#2ea043);">
+              💾 &nbsp; Save Pending Back Pay
+            </button>
+
+            <!-- BP Result -->
+            <div id="bp-result" style="display:none;border-radius:8px;padding:10px 14px;text-align:center;font-size:13px;font-weight:500;"></div>
+
+            <!-- Pending list -->
+            <div id="bp-pending-list" style="display:none;">
+              <div style="font-size:11px;text-transform:uppercase;letter-spacing:1.5px;color:var(--muted);font-weight:600;margin-bottom:8px;">Pending Items</div>
+              <div id="bp-pending-items"></div>
+            </div>
+
+          </div><!-- end #backpay-section -->
 
         </div>
       </div>
@@ -1130,10 +1277,10 @@ async function checkPin() {
       const res  = await gasFetch(`${WEB_APP_URL}?action=verifyDevicePin&name=${encodeURIComponent(deviceName)}&pin=${encodeURIComponent(entered)}`);
       const data = await res.json();
       if (data.success) {
-        if (data.pin !== undefined && !data.notFound) {
+        if (!data.notFound) {
           // Device found in Sheets — trust the Sheets result
           valid = data.valid;
-          if (valid) store.set('device_pin', data.pin); // keep cache in sync
+          if (valid) store.set('device_pin', entered); // cache the confirmed PIN locally
         } else {
           // Device not in Sheets yet (notFound) — fall back to local cache
           valid = entered === getDevicePin();
@@ -1218,6 +1365,31 @@ function showAdminRegister() {
   document.getElementById('reg-device-pin').value  = '';
   document.getElementById('reg-admin-error').classList.remove('show');
   showScreen('screen-admin-register');
+}
+
+async function activateWithCode() {
+  const code  = document.getElementById('activate-code').value.trim().toUpperCase();
+  const pin   = document.getElementById('activate-pin').value.trim();
+  const errEl = document.getElementById('activate-error');
+
+  if (!code) { errEl.textContent = 'Enter the registration code.'; errEl.classList.add('show'); return; }
+  if (!/^\d{4}$/.test(pin)) { errEl.textContent = 'PIN must be exactly 4 digits.'; errEl.classList.add('show'); return; }
+
+  errEl.textContent = 'Activating…'; errEl.classList.add('show');
+
+  try {
+    const res  = await gasFetch(`${WEB_APP_URL}?action=activateDevice&regCode=${encodeURIComponent(code)}&pin=${encodeURIComponent(pin)}`);
+    const data = await res.json();
+    if (!data.success) {
+      errEl.textContent = data.error || 'Invalid code.'; errEl.classList.add('show'); return;
+    }
+    store.set('device_name', data.deviceName);
+    store.set('device_pin',  pin);
+    errEl.classList.remove('show');
+    showScreen('screen-pin');
+  } catch(err) {
+    errEl.textContent = 'Could not connect. Check your internet connection.'; errEl.classList.add('show');
+  }
 }
 
 async function registerThisDevice() {
@@ -1519,6 +1691,7 @@ async function unlockManualEntry() {
 
 function lockManualEntry() {
   manualEntryUnlocked = false;
+  currentEntryMode = 'time';
   document.getElementById('entry-locked').style.display = 'block';
   document.getElementById('entry-form').style.display   = 'none';
   document.getElementById('entry-name-search').value    = '';
@@ -1528,23 +1701,59 @@ function lockManualEntry() {
   document.getElementById('entry-note').value           = '';
   document.getElementById('entry-emp-badge').style.display = 'none';
   document.getElementById('entry-result').style.display = 'none';
+  // Reset back pay section
+  document.getElementById('bp-name-search').value  = '';
+  document.getElementById('bp-emp-id').value        = '';
+  document.getElementById('bp-emp-rate').value      = '0';
+  document.getElementById('bp-emp-cycle').value     = 'Fortnightly';
+  document.getElementById('bp-period-end').value    = '';
+  document.getElementById('bp-date-worked').value   = '';
+  document.getElementById('bp-site').value          = '';
+  document.getElementById('bp-amount').value        = '';
+  document.getElementById('bp-clock-in').value      = '';
+  document.getElementById('bp-clock-out').value     = '';
+  document.getElementById('bp-reason').value        = '';
+  document.getElementById('bp-calc-preview').style.display = 'none';
+  document.getElementById('bp-emp-badge').style.display    = 'none';
+  document.getElementById('bp-pending-list').style.display = 'none';
+  document.getElementById('bp-result').style.display       = 'none';
+  setBPAmountMode('fixed');
 }
 
 function clearManualEntryForm() {
-  document.getElementById('entry-name-search').value       = '';
-  document.getElementById('entry-emp-id').value            = '';
-  document.getElementById('entry-clock-in').value          = '';
-  document.getElementById('entry-clock-out').value         = '';
-  document.getElementById('entry-note').value              = '';
-  document.getElementById('entry-emp-badge').style.display = 'none';
-  document.getElementById('entry-result').style.display    = 'none';
-  document.getElementById('entry-name-results').classList.remove('open');
-  // Reset date to today
-  const today = new Date();
-  const yyyy = today.getFullYear();
-  const mm   = String(today.getMonth()+1).padStart(2,'0');
-  const dd   = String(today.getDate()).padStart(2,'0');
-  document.getElementById('entry-date').value = `${yyyy}-${mm}-${dd}`;
+  if (currentEntryMode === 'backpay') {
+    document.getElementById('bp-name-search').value  = '';
+    document.getElementById('bp-emp-id').value        = '';
+    document.getElementById('bp-emp-rate').value      = '0';
+    document.getElementById('bp-emp-cycle').value     = 'Fortnightly';
+    document.getElementById('bp-period-end').value    = '';
+    document.getElementById('bp-date-worked').value   = '';
+    document.getElementById('bp-site').value          = '';
+    document.getElementById('bp-amount').value        = '';
+    document.getElementById('bp-clock-in').value      = '';
+    document.getElementById('bp-clock-out').value     = '';
+    document.getElementById('bp-reason').value        = '';
+    document.getElementById('bp-calc-preview').style.display = 'none';
+    document.getElementById('bp-emp-badge').style.display    = 'none';
+    document.getElementById('bp-pending-list').style.display = 'none';
+    document.getElementById('bp-result').style.display       = 'none';
+    document.getElementById('bp-name-results').classList.remove('open');
+    setBPAmountMode('fixed');
+  } else {
+    document.getElementById('entry-name-search').value       = '';
+    document.getElementById('entry-emp-id').value            = '';
+    document.getElementById('entry-clock-in').value          = '';
+    document.getElementById('entry-clock-out').value         = '';
+    document.getElementById('entry-note').value              = '';
+    document.getElementById('entry-emp-badge').style.display = 'none';
+    document.getElementById('entry-result').style.display    = 'none';
+    document.getElementById('entry-name-results').classList.remove('open');
+    const today = new Date();
+    const yyyy = today.getFullYear();
+    const mm   = String(today.getMonth()+1).padStart(2,'0');
+    const dd   = String(today.getDate()).padStart(2,'0');
+    document.getElementById('entry-date').value = `${yyyy}-${mm}-${dd}`;
+  }
 }
 
 function searchEntryEmployee(query) {
@@ -1591,9 +1800,13 @@ async function submitManualEntry() {
     showEntryResult('Clock Out must be after Clock In.', false); return;
   }
 
-  // Rule: No future times (only applies if date is today)
+  // Rule: date cannot be in the future
   const _now = new Date();
   const _todayStr = _now.getFullYear() + '-' + String(_now.getMonth()+1).padStart(2,'0') + '-' + String(_now.getDate()).padStart(2,'0');
+  if (date > _todayStr) {
+    showEntryResult('Entry date cannot be in the future.', false); return;
+  }
+  // Rule: no future times (only applies if date is today)
   if (date === _todayStr) {
     const _nowTime = String(_now.getHours()).padStart(2,'0') + ':' + String(_now.getMinutes()).padStart(2,'0');
     if (clockIn && clockIn > _nowTime) {
@@ -1604,55 +1817,75 @@ async function submitManualEntry() {
     }
   }
 
-  const btn = document.getElementById('entry-submit-btn');
-  btn.disabled = true;
-  btn.textContent = '... Submitting...';
+  // Collect site label for the review
+  const siteSel   = document.getElementById('entry-site');
+  const siteLabel = siteSel.options[siteSel.selectedIndex]?.text || site;
+  const empName   = document.getElementById('entry-name-search').value.trim();
+  const emp       = EMPLOYEES.find(e => e.id === empId);
+  const lunchHrs  = getLunchHrsClient(emp?.payCycle, emp?.position);
+  const duration  = (clockIn && clockOut) ? calcNetDuration(clockIn, clockOut, lunchHrs) : '—';
 
-  try {
-    // Use GET with URL params instead of POST to avoid CORS issues with Apps Script
-    const params = new URLSearchParams({
-      action:   'manualEntry',
-      empId,
-      date,
-      clockIn:  clockIn  || '',
-      clockOut: clockOut || '',
-      site:     site,
-      note:     note     || ''
-    });
-    const controller = new AbortController();
-    const hardTimeout = setTimeout(() => controller.abort(), 60000);
-    // Show reassurance message after 10s so user knows it's still working
-    const slowTimer = setTimeout(() => {
-      btn.textContent = '⏳ Still saving — please wait...';
-    }, 10000);
+  // Format date for display
+  const [dy, dm, dd2] = date.split('-');
+  const dateDisplay = `${dm}/${dd2}/${dy}`;
 
-    let res, data;
+  const reviewRows = [
+    ['Employee',  empName   || empId, false],
+    ['Date',      dateDisplay,        false],
+    ['Clock In',  clockIn   || '—',   false],
+    ['Clock Out', clockOut  || '—',   false],
+    ['Duration',  duration,           true ],
+    ['Site',      siteLabel,          false],
+    ...(note ? [['Note', note, false]] : [])
+  ];
+
+  showReviewModal('📋', 'Review Time Entry', reviewRows, async () => {
+    const btn = document.getElementById('entry-submit-btn');
+    btn.disabled = true;
+    btn.textContent = '... Submitting...';
+
     try {
-      res  = await fetch(`${WEB_APP_URL}?${params.toString()}`, { signal: controller.signal });
-      data = await res.json();
-    } finally {
-      clearTimeout(hardTimeout);
-      clearTimeout(slowTimer);
-    }
-    if (data.success) {
-      showEntryResult(`✓ Entry saved for ${data.empName} on ${date}`, true);
-      document.getElementById('entry-clock-in').value  = '';
-      document.getElementById('entry-clock-out').value = '';
-      document.getElementById('entry-site').selectedIndex = 0;
-      document.getElementById('entry-note').value      = '';
-    } else {
-      showEntryResult('✕ ' + (data.error || 'Unknown error'), false);
-    }
-  } catch (err) {
-    if (err.name === 'AbortError') {
-      showEntryResult('⏱ Server is warming up. Please try again in a few seconds.', false);
-    } else {
-      showEntryResult('Network error: ' + err.message, false);
-    }
-  }
+      const params = new URLSearchParams({
+        action:   'manualEntry',
+        empId,
+        date,
+        clockIn:  clockIn  || '',
+        clockOut: clockOut || '',
+        site:     site,
+        note:     note     || ''
+      });
+      const controller = new AbortController();
+      const hardTimeout = setTimeout(() => controller.abort(), 60000);
+      const slowTimer = setTimeout(() => { btn.textContent = '⏳ Still saving — please wait...'; }, 10000);
 
-  btn.disabled = false;
-  btn.textContent = '✓   Submit Entry';
+      let res, data;
+      try {
+        res  = await fetch(`${WEB_APP_URL}?${params.toString()}`, { signal: controller.signal });
+        data = await res.json();
+      } finally {
+        clearTimeout(hardTimeout);
+        clearTimeout(slowTimer);
+      }
+      if (data.success) {
+        showEntryResult(`✓ Entry saved for ${data.empName} on ${date}`, true);
+        document.getElementById('entry-clock-in').value  = '';
+        document.getElementById('entry-clock-out').value = '';
+        document.getElementById('entry-site').selectedIndex = 0;
+        document.getElementById('entry-note').value      = '';
+      } else {
+        showEntryResult('✕ ' + (data.error || 'Unknown error'), false);
+      }
+    } catch (err) {
+      if (err.name === 'AbortError') {
+        showEntryResult('⏱ Server is warming up. Please try again in a few seconds.', false);
+      } else {
+        showEntryResult('Network error: ' + err.message, false);
+      }
+    }
+
+    btn.disabled = false;
+    btn.textContent = '✓   Submit Entry';
+  });
 }
 
 function showEntryResult(msg, success) {
@@ -1665,11 +1898,248 @@ function showEntryResult(msg, success) {
   setTimeout(() => { el.style.display = 'none'; }, 4000);
 }
 
-// Close entry dropdown on outside click
+// ── MODE TOGGLE ──────────────────────────────────────────────────────────────
+let currentEntryMode = 'time'; // 'time' | 'backpay'
+
+function setEntryMode(mode) {
+  currentEntryMode = mode;
+  const isTime   = mode === 'time';
+  const timeBtn  = document.getElementById('toggle-time-btn');
+  const bpBtn    = document.getElementById('toggle-bp-btn');
+  const timeSec  = document.getElementById('time-entry-section');
+  const bpSec    = document.getElementById('backpay-section');
+  const lbl      = document.getElementById('entry-mode-label');
+
+  timeBtn.style.background = isTime ? 'var(--gold)' : 'transparent';
+  timeBtn.style.color      = isTime ? '#0a0f1a'     : 'var(--muted)';
+  bpBtn.style.background   = isTime ? 'transparent' : 'var(--gold)';
+  bpBtn.style.color        = isTime ? 'var(--muted)' : '#0a0f1a';
+
+  timeSec.style.display    = isTime ? 'block'  : 'none';
+  bpSec.style.display      = isTime ? 'none'   : 'flex';
+  if (isTime) setBPAmountMode('fixed'); // reset BP mode when switching to time entry
+
+  lbl.textContent = isTime ? '✏️ Manual Time Entry' : '💰 Pending Back Pay';
+}
+
+// ── BACK PAY FUNCTIONS ────────────────────────────────────────────────────────
+function searchBPEmployee(query) {
+  const resultsEl = document.getElementById('bp-name-results');
+  document.getElementById('bp-emp-id').value = '';
+  document.getElementById('bp-emp-badge').style.display = 'none';
+  document.getElementById('bp-pending-list').style.display = 'none';
+  if (!query || query.length < 2) { resultsEl.classList.remove('open'); return; }
+  const matches = EMPLOYEES.filter(e => e.name.toLowerCase().includes(query.toLowerCase())).slice(0,8);
+  resultsEl.innerHTML = matches.length === 0
+    ? '<div class="no-results">No employees found</div>'
+    : matches.map(e => `
+        <div class="name-result-item" onclick="selectBPEmployee('${e.id}','${e.name.replace(/'/g,"\\'")}')">
+          <span class="result-id">${e.id}</span>
+          <div class="result-name">${e.name}</div>
+          <div class="result-meta">${e.position}</div>
+        </div>`).join('');
+  resultsEl.classList.add('open');
+}
+
+async function selectBPEmployee(id, name) {
+  document.getElementById('bp-name-search').value = name;
+  document.getElementById('bp-emp-id').value      = id;
+  document.getElementById('bp-name-results').classList.remove('open');
+  document.getElementById('bp-emp-badge-text').textContent = id;
+  document.getElementById('bp-emp-badge').style.display = 'block';
+  // Store rate and payCycle from cache for hours calculation
+  const emp = EMPLOYEES.find(e => e.id === id);
+  document.getElementById('bp-emp-rate').value  = emp ? (emp.rate  || 0)             : 0;
+  document.getElementById('bp-emp-cycle').value = emp ? (emp.payCycle || 'Fortnightly') : 'Fortnightly';
+  calcBPHours(); // recalculate if times already filled
+  await loadPendingBP(id);
+}
+
+let bpAmountMode = 'fixed'; // 'fixed' | 'hours'
+
+function setBPAmountMode(mode) {
+  bpAmountMode = mode;
+  const isFixed = mode === 'fixed';
+  document.getElementById('bp-mode-fixed-btn').style.background = isFixed ? 'var(--gold)' : 'transparent';
+  document.getElementById('bp-mode-fixed-btn').style.color      = isFixed ? '#0a0f1a'     : 'var(--muted)';
+  document.getElementById('bp-mode-hours-btn').style.background = isFixed ? 'transparent' : 'var(--gold)';
+  document.getElementById('bp-mode-hours-btn').style.color      = isFixed ? 'var(--muted)' : '#0a0f1a';
+  document.getElementById('bp-fixed-section').style.display  = isFixed ? 'block' : 'none';
+  document.getElementById('bp-hours-section').style.display  = isFixed ? 'none'  : 'block';
+  if (!isFixed) calcBPHours();
+}
+
+function calcBPHours() {
+  const inTime  = document.getElementById('bp-clock-in').value;
+  const outTime = document.getElementById('bp-clock-out').value;
+  const preview = document.getElementById('bp-calc-preview');
+  if (!inTime || !outTime) { if (bpAmountMode === 'hours') preview.style.display = 'none'; return; }
+
+  const [ih, im] = inTime.split(':').map(Number);
+  const [oh, om] = outTime.split(':').map(Number);
+  const totalMins = (oh * 60 + om) - (ih * 60 + im);
+  if (totalMins <= 0) { if (bpAmountMode === 'hours') preview.style.display = 'none'; return; }
+
+  const rate     = parseFloat(document.getElementById('bp-emp-rate').value) || 0;
+  const totalHrs = totalMins / 60;
+  const REG_CAP  = 8;
+  const regHrs   = Math.min(totalHrs, REG_CAP);
+  const otHrs    = Math.max(0, totalHrs - REG_CAP);
+  const regPay   = Math.round(regHrs * rate * 100) / 100;
+  const otPay    = Math.round(otHrs  * rate * 1.5 * 100) / 100;
+  const total    = Math.round((regPay + otPay) * 100) / 100;
+
+  document.getElementById('bp-calc-reg').textContent   = regHrs.toFixed(2) + 'h' + (rate ? ` @ EC$${rate.toFixed(2)}/h = EC$${regPay.toFixed(2)}` : '');
+  document.getElementById('bp-calc-ot').textContent    = otHrs > 0 ? otHrs.toFixed(2) + 'h' + (rate ? ` @ EC$${(rate*1.5).toFixed(2)}/h = EC$${otPay.toFixed(2)}` : '') : '—';
+  document.getElementById('bp-calc-total').textContent = rate ? `EC$ ${total.toFixed(2)}` : 'Select employee first';
+
+  if (bpAmountMode === 'hours') {
+    preview.style.display = 'block';
+    document.getElementById('bp-amount').value = rate ? total.toFixed(2) : '';
+  }
+}
+
+function updateBPPreview() {
+  // Nothing extra needed for fixed mode — amount field is direct
+}
+
+async function loadPendingBP(empId) {
+  const listEl  = document.getElementById('bp-pending-list');
+  const itemsEl = document.getElementById('bp-pending-items');
+  try {
+    const p = new URLSearchParams({ action: 'getPendingBackPay', empId });
+    const res  = await fetch(`${WEB_APP_URL}?${p}`);
+    const data = await res.json();
+    if (!data.success || !data.items.length) { listEl.style.display = 'none'; return; }
+    itemsEl.innerHTML = data.items.map(item => `
+      <div style="display:flex;justify-content:space-between;align-items:flex-start;padding:8px 10px;background:var(--surface);border:1px solid var(--border);border-radius:6px;margin-bottom:6px;gap:8px;">
+        <div style="flex:1;min-width:0;">
+          <div style="font-size:13px;font-weight:600;color:var(--text);">EC$ ${item.amount.toFixed(2)}</div>
+          <div style="font-size:11px;color:var(--muted);margin-top:2px;">${item.reason || '—'}</div>
+          ${item.forPeriod ? `<div style="font-size:10px;color:var(--gold);margin-top:1px;">Period ending: ${item.forPeriod}</div>` : ''}
+          <div style="font-size:10px;color:var(--muted);margin-top:1px;">Logged: ${item.created}</div>
+        </div>
+        <button onclick="cancelBP('${item.id}')" title="Cancel this entry"
+          style="background:rgba(239,68,68,0.1);border:1px solid rgba(239,68,68,0.3);color:var(--red);border-radius:5px;padding:3px 8px;font-size:11px;cursor:pointer;white-space:nowrap;">
+          ✕ Cancel
+        </button>
+      </div>`).join('');
+    listEl.style.display = 'block';
+  } catch(_) { listEl.style.display = 'none'; }
+}
+
+async function submitBackPay() {
+  const empId      = document.getElementById('bp-emp-id').value.trim();
+  const empName    = document.getElementById('bp-name-search').value.trim();
+  const amount     = parseFloat(document.getElementById('bp-amount').value) || 0;
+  const reason     = document.getElementById('bp-reason').value.trim();
+  const forPeriod  = document.getElementById('bp-period-end').value;
+  const site       = document.getElementById('bp-site').value;
+  const dateWorked = document.getElementById('bp-date-worked').value;
+  const clockIn    = document.getElementById('bp-clock-in').value;
+  const clockOut   = document.getElementById('bp-clock-out').value;
+
+  if (!empId)     { showBPResult('Please select an employee.', false); return; }
+  if (!forPeriod) { showBPResult('Please enter the Pay Period End Date.', false); return; }
+
+  const _todayStr2 = (() => { const d = new Date(); return d.getFullYear() + '-' + String(d.getMonth()+1).padStart(2,'0') + '-' + String(d.getDate()).padStart(2,'0'); })();
+  if (forPeriod >= _todayStr2) {
+    showBPResult('Pay Period End Date must be before today — back pay can only be entered for a completed pay cycle.', false); return;
+  }
+
+  if (bpAmountMode === 'hours') {
+    if (!clockIn || !clockOut) { showBPResult('Please enter both Clock In and Clock Out times.', false); return; }
+    if (clockIn >= clockOut)   { showBPResult('Clock Out must be after Clock In.', false); return; }
+    calcBPHours();
+  }
+
+  if (!amount || amount <= 0) { showBPResult('Please enter an amount greater than 0.', false); return; }
+
+  const [py, pm, pd] = forPeriod.split('-');
+  const periodDisplay = `${pm}/${pd}/${py}`;
+  const siteLabel = site ? ((cachedSites.find(s => s.code === site) || {}).name || site) : '(not specified)';
+  const dateWorkedDisplay = dateWorked ? (() => { const [y,m,d] = dateWorked.split('-'); return `${m}/${d}/${y}`; })() : '(not specified)';
+
+  const reviewRows = [
+    ['Employee',          empName || empId,               false],
+    ['Date Worked',       dateWorkedDisplay,               false],
+    ['Site',              siteLabel,                       false],
+    ['Clock In',          clockIn  || '(not specified)',   false],
+    ['Clock Out',         clockOut || '(not specified)',   false],
+    ...(clockIn && clockOut ? [['Duration', calcDuration(clockIn, clockOut), false]] : []),
+    ['For Period Ending', periodDisplay,                   true ],
+    ['Amount',            'EC$ ' + amount.toFixed(2),      true ],
+    ['Reason',            reason || '(no reason given)',   false],
+    ['Status',            'Pending — auto-fills next payroll', false]
+  ];
+
+  showReviewModal('💰', 'Review Back Pay Entry', reviewRows, async () => {
+  const btn = document.getElementById('bp-submit-btn');
+  btn.disabled = true;
+  btn.textContent = '⏳ Saving…';
+
+  try {
+    const p = new URLSearchParams({ action: 'addPendingBackPay', empId, empName, amount: amount.toFixed(2), reason, forPeriod, site, dateWorked, clockIn, clockOut, calcType: bpAmountMode });
+    const res  = await fetch(`${WEB_APP_URL}?${p}`);
+    const data = await res.json();
+    if (data.success) {
+      showBPResult(`✓ Pending back pay of EC$${amount.toFixed(2)} saved for ${empName}`, true);
+      document.getElementById('bp-period-end').value  = '';
+      document.getElementById('bp-amount').value       = '';
+      document.getElementById('bp-reason').value       = '';
+      document.getElementById('bp-site').value         = '';
+      document.getElementById('bp-date-worked').value  = '';
+      document.getElementById('bp-clock-in').value     = '';
+      document.getElementById('bp-clock-out').value    = '';
+      document.getElementById('bp-calc-preview').style.display = 'none';
+      await loadPendingBP(empId);
+    } else {
+      showBPResult('✕ ' + (data.error || 'Unknown error'), false);
+    }
+  } catch(err) {
+    showBPResult('Network error: ' + err.message, false);
+  }
+
+  btn.disabled = false;
+  btn.textContent = '💾   Save Pending Back Pay';
+  }); // end showReviewModal callback
+}
+
+async function cancelBP(bpId) {
+  if (!confirm('Cancel this pending back pay entry?')) return;
+  try {
+    const p = new URLSearchParams({ action: 'cancelPendingBackPay', id: bpId });
+    const res  = await fetch(`${WEB_APP_URL}?${p}`);
+    const data = await res.json();
+    if (data.success) {
+      const empId = document.getElementById('bp-emp-id').value.trim();
+      if (empId) await loadPendingBP(empId);
+      showBPResult('Entry cancelled.', true);
+    } else {
+      showBPResult('✕ ' + (data.error || 'Could not cancel.'), false);
+    }
+  } catch(err) {
+    showBPResult('Network error: ' + err.message, false);
+  }
+}
+
+function showBPResult(msg, success) {
+  const el = document.getElementById('bp-result');
+  el.textContent       = msg;
+  el.style.display     = 'block';
+  el.style.background  = success ? 'rgba(34,197,94,0.12)' : 'rgba(239,68,68,0.1)';
+  el.style.border      = success ? '1px solid rgba(34,197,94,0.3)' : '1px solid rgba(239,68,68,0.3)';
+  el.style.color       = success ? 'var(--green)' : 'var(--red)';
+  setTimeout(() => { el.style.display = 'none'; }, 5000);
+}
+
+// Close entry dropdowns on outside click
 document.addEventListener('click', e => {
   if (!e.target.closest('#tab-entry .search-wrap')) {
-    const r = document.getElementById('entry-name-results');
-    if (r) r.classList.remove('open');
+    const r1 = document.getElementById('entry-name-results');
+    if (r1) r1.classList.remove('open');
+    const r2 = document.getElementById('bp-name-results');
+    if (r2) r2.classList.remove('open');
   }
 });
 
@@ -1916,7 +2386,7 @@ async function submitClock(action) {
   // Per-employee 60-second guard — stops QR auto-submit + button tap double-entry
   const histKey    = (currentEmployee.id || '') + '|' + action;
   const lastSubmit = clockSubmitHistory[histKey] || 0;
-  if (Date.now() - lastSubmit < 60000) {
+  if (Date.now() - lastSubmit < 180000) {
     console.log('Double-submit blocked for', currentEmployee.id, action);
     return;
   }
@@ -2214,6 +2684,14 @@ function addToOfflineQueue(empId, empName, action, site, timestamp, flag) {
   saveOfflineQueue(queue);
   saveLastAction(empId, action, site);
   updateOfflineBadge();
+
+  // Tell the Service Worker to register a Background Sync tag so the queue
+  // syncs automatically when connectivity returns — even if this tab is closed
+  // or the tablet goes to sleep before the connection is restored.
+  if ('serviceWorker' in navigator && navigator.serviceWorker.controller) {
+    navigator.serviceWorker.controller.postMessage({ type: 'REGISTER_SYNC' });
+  }
+
   return true;
 }
 
@@ -2394,7 +2872,7 @@ async function loadSiteDropdown() {
 function refreshSiteDropdowns() {
   // Refresh every site dropdown in the app from cachedSites
   const sites = cachedSites.length > 0 ? cachedSites : DEFAULT_SITE_LIST;
-  ['site-select', 'entry-site'].forEach(id => {
+  ['site-select', 'entry-site', 'bp-site'].forEach(id => {
     const sel = document.getElementById(id);
     if (!sel) return;
     const prev = sel.value;
@@ -2676,11 +3154,29 @@ async function removeEmployee(empId, empName) {
   }
 }
 
-// ?? Initialization ?????????????????????????????????????????????????????????
+// ── Initialization ──────────────────────────────────────────────────────────
 updateOfflineBadge();
 setTimeout(() => { if (navigator.onLine) syncOfflineQueue(); }, 2000);
 
-// Page initialized via window.addEventListener('load')
+// ── Service Worker registration ─────────────────────────────────────────────
+// Requires the app to be served over HTTPS from a web server (not file://).
+// If registration fails the app continues working normally using its existing
+// localStorage queue + online/offline listeners — no functionality is lost.
+if ('serviceWorker' in navigator) {
+  navigator.serviceWorker.register('./sw.js').then(reg => {
+    console.log('ACEtech SW registered, scope:', reg.scope);
+  }).catch(err => {
+    console.log('SW not available (file:// or non-HTTPS):', err.message);
+  });
+
+  // Listen for the SW telling us connectivity was restored while the tab was
+  // in the background — trigger an immediate sync of any queued entries.
+  navigator.serviceWorker.addEventListener('message', event => {
+    if (event.data && event.data.type === 'SW_TRIGGER_SYNC') {
+      syncOfflineQueue();
+    }
+  });
+}
 
 </script>
 <!-- Offline queue badge -->
@@ -2808,11 +3304,113 @@ document.addEventListener('click', function(e){
   if (overlay && e.target === overlay) closeEditEmployee();
 });
 
+// ── REVIEW MODAL ─────────────────────────────────────────────────────────────
+let _reviewCallback = null;
+
+function showReviewModal(icon, title, rows, onConfirm) {
+  _reviewCallback = onConfirm;
+  document.getElementById('review-modal-icon').textContent  = icon;
+  document.getElementById('review-modal-title').textContent = title;
+
+  const body = document.getElementById('review-modal-body');
+  body.innerHTML = rows.map(([label, value, highlight]) => `
+    <div style="display:flex;justify-content:space-between;align-items:baseline;padding:7px 0;border-bottom:1px solid rgba(255,255,255,0.06);">
+      <span style="font-size:11px;text-transform:uppercase;letter-spacing:1px;color:var(--muted);flex-shrink:0;margin-right:12px;">${label}</span>
+      <span style="font-size:13px;font-weight:600;color:${highlight ? 'var(--gold)' : 'var(--text)'};text-align:right;">${value}</span>
+    </div>`).join('');
+
+  const modal = document.getElementById('review-modal-overlay');
+  modal.style.display = 'flex';
+}
+
+function closeReviewModal() {
+  document.getElementById('review-modal-overlay').style.display = 'none';
+  _reviewCallback = null;
+}
+
+function confirmReviewModal() {
+  document.getElementById('review-modal-overlay').style.display = 'none';
+  if (_reviewCallback) { const cb = _reviewCallback; _reviewCallback = null; cb(); }
+}
+
+// Close on backdrop click
+document.getElementById('review-modal-overlay').addEventListener('click', e => {
+  if (e.target === document.getElementById('review-modal-overlay')) closeReviewModal();
+});
+
+// Mirrors backend getLunchHrs: 0.5hr for Monthly admin/office, 1.0hr for all others
+function getLunchHrsClient(payCycle, position) {
+  if (String(payCycle || '').trim() !== 'Monthly') return 1.0;
+  const pos = String(position || '').trim().toLowerCase();
+  return ['supervisor', 'manager'].includes(pos) ? 1.0 : 0.5;
+}
+
+// Gross duration (used for back pay reference display)
+function calcDuration(inTime, outTime) {
+  if (!inTime || !outTime) return '—';
+  const [ih, im] = inTime.split(':').map(Number);
+  const [oh, om] = outTime.split(':').map(Number);
+  const total = (oh * 60 + om) - (ih * 60 + im);
+  if (total <= 0) return '—';
+  const h = Math.floor(total / 60);
+  const m = total % 60;
+  return h > 0 ? `${h}h ${m > 0 ? m + 'min' : ''}`.trim() : `${m}min`;
+}
+
+// Net duration after lunch deduction — used for manual entry review modal
+function calcNetDuration(inTime, outTime, lunchHrs) {
+  if (!inTime || !outTime) return '—';
+  const [ih, im] = inTime.split(':').map(Number);
+  const [oh, om] = outTime.split(':').map(Number);
+  const grossMins = (oh * 60 + om) - (ih * 60 + im);
+  if (grossMins <= 0) return '—';
+  const lunchMins = Math.round((lunchHrs || 0) * 60);
+  const netMins   = Math.max(0, grossMins - lunchMins);
+  const h = Math.floor(netMins / 60);
+  const m = netMins % 60;
+  const timeStr   = h > 0 ? `${h}h ${m > 0 ? m + 'min' : ''}`.trim() : `${m}min`;
+  return timeStr;
+}
+
 </script>
 <!-- Offline queue badge -->
 <div class="offline-badge" id="offline-badge" onclick="showOfflineQueue()">
   <span class="offline-indicator" id="net-indicator"></span>
   <span id="offline-badge-text">0 pending</span>
 </div>
+
+<!-- ── REVIEW MODAL ──────────────────────────────────────────────────────── -->
+<div id="review-modal-overlay" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,0.72);z-index:9000;align-items:center;justify-content:center;padding:16px;">
+  <div style="background:#131929;border:1px solid var(--border);border-radius:14px;width:100%;max-width:380px;overflow:hidden;box-shadow:0 24px 60px rgba(0,0,0,0.6);">
+
+    <!-- Header -->
+    <div style="background:rgba(201,162,39,0.12);border-bottom:1px solid var(--border);padding:16px 20px;display:flex;align-items:center;gap:10px;">
+      <span style="font-size:20px;" id="review-modal-icon">📋</span>
+      <div>
+        <div style="font-family:'Barlow Condensed',sans-serif;font-size:16px;font-weight:700;letter-spacing:1px;color:var(--gold);" id="review-modal-title">Review Entry</div>
+        <div style="font-size:11px;color:var(--muted);margin-top:1px;">Confirm details before saving</div>
+      </div>
+    </div>
+
+    <!-- Body -->
+    <div id="review-modal-body" style="padding:18px 20px;display:flex;flex-direction:column;gap:10px;">
+      <!-- rows injected by JS -->
+    </div>
+
+    <!-- Actions -->
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;padding:14px 20px 18px;">
+      <button id="review-edit-btn" onclick="closeReviewModal()"
+        style="padding:12px;border:1px solid var(--border);border-radius:8px;background:transparent;color:var(--muted);font-size:13px;font-weight:600;cursor:pointer;letter-spacing:0.5px;">
+        ✏️ Edit
+      </button>
+      <button id="review-confirm-btn" onclick="confirmReviewModal()"
+        style="padding:12px;border:none;border-radius:8px;background:var(--gold);color:#0a0f1a;font-size:13px;font-weight:700;cursor:pointer;letter-spacing:0.5px;">
+        ✓ Confirm &amp; Save
+      </button>
+    </div>
+
+  </div>
+</div>
+
 </body>
 </html>
